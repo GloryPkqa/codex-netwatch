@@ -12,7 +12,7 @@ Local-first network observability for Codex. Uses **Mihomo connection counters**
 
 Requires Windows 10/11, Node.js **24+**, and a running Mihomo/Clash Verge Rev instance. No npm install, API key, packet capture driver, HTTPS interception, or third-party runtime dependencies.
 
-**Portable option:** download `codex-netwatch-windows-x64.zip` from [Releases](https://github.com/GloryPkqa/codex-netwatch/releases), extract the full folder to a writable location and run `Codex-Netwatch.exe`. It bundles a checksum-verified official Node runtime; no Node installation is needed. Requires .NET Framework 4.8. The tray opens the dashboard and starts/stops its own collector. The preview EXE is unsigned. See [portable build and lifecycle](docs/WINDOWS_PORTABLE.md).
+**Portable desktop option:** download `codex-netwatch-windows-x64.zip` from [Releases](https://github.com/GloryPkqa/codex-netwatch/releases), extract the full folder to a writable location and run `Codex-Netwatch.exe` to open the same dashboard inside a desktop window. It bundles a checksum-verified official Node runtime; no Node installation is needed. Requires .NET Framework 4.8 and Microsoft Edge WebView2 Runtime. Closing the window keeps collection running in the tray; double-click the tray to reopen it. The tray also offers browser access and collector controls. If WebView2 is missing, the window links to Microsoft's installer page and offers a browser fallback. The preview EXE is unsigned. See [portable build and lifecycle](docs/WINDOWS_PORTABLE.md).
 
 - Double-click `start.cmd`, or run `npm start`.
 - Dashboard: `http://127.0.0.1:43128`.

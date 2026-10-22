@@ -13,10 +13,10 @@ using System.Web.Script.Serialization;
 using System.Windows.Forms;
 
 [assembly: AssemblyTitle("Codex Netwatch")]
-[assembly: AssemblyDescription("Portable local collector and system tray host")]
+[assembly: AssemblyDescription("Portable local dashboard, collector and system tray host")]
 [assembly: AssemblyCompany("GloryPkqa")]
 [assembly: AssemblyProduct("Codex Netwatch")]
-[assembly: AssemblyVersion("0.2.0.0")]
+[assembly: AssemblyVersion("0.2.1.0")]
 
 internal sealed class TrayOptions
 {
@@ -70,6 +70,7 @@ internal sealed class NetwatchTray : ApplicationContext
     private readonly EventWaitHandle openEvent, startEvent, stopEvent, exitEvent;
     private readonly string token;
     private Process child;
+    private DashboardWindow dashboard;
     private bool starting, exiting, openingAfterStart;
     private DateTime startupDeadline, nextHealth;
     private readonly object logLock = new object();
@@ -93,6 +94,7 @@ internal sealed class NetwatchTray : ApplicationContext
         menu.Items.Add(status);
         menu.Items.Add(new ToolStripSeparator());
         menu.Items.Add(Text("Open dashboard", "打开监控页面"), null, delegate { OpenDashboard(); });
+        menu.Items.Add(Text("Open in browser", "在浏览器打开"), null, delegate { OpenBrowser(); });
         start = new ToolStripMenuItem(Text("Start collector", "启动采集"), null, delegate { StartCollector(false); });
         stop = new ToolStripMenuItem(Text("Stop collector", "停止采集"), null, delegate { StopCollector(); });
         menu.Items.Add(start); menu.Items.Add(stop);
@@ -149,7 +151,29 @@ internal sealed class NetwatchTray : ApplicationContext
     {
         Dictionary<string, object> health = Health();
         if (!Compatible(health)) { StartCollector(true); return; }
+        ShowDashboard();
+    }
+    private void OpenBrowser()
+    {
         Process.Start(new ProcessStartInfo(options.BaseUrl) { UseShellExecute = true });
+    }
+    private void ShowDashboard()
+    {
+        try
+        {
+            if (dashboard == null || dashboard.IsDisposed)
+            {
+                dashboard = new DashboardWindow(options.BaseUrl, Path.Combine(options.DataDir, "webview-profile"),
+                    delegate(string url) { Process.Start(new ProcessStartInfo(url) { UseShellExecute = true }); },
+                    delegate(string message) {
+                        Log("webview", message);
+                        tray.ShowBalloonTip(8000, "Codex Netwatch", Text("Desktop view unavailable; the collector is still controlled from the tray.", "内置面板暂不可用，仍可通过托盘控制采集或打开浏览器。"), ToolTipIcon.Warning);
+                    });
+                dashboard.Icon = tray.Icon;
+            }
+            dashboard.ShowDashboard();
+        }
+        catch (Exception error) { ShowFailure(error.Message); OpenBrowser(); }
     }
     private void ShowFailure(string message)
     {
@@ -164,7 +188,7 @@ internal sealed class NetwatchTray : ApplicationContext
         if (Compatible(health))
         {
             UpdateStatus(health);
-            if (openBrowser) Process.Start(new ProcessStartInfo(options.BaseUrl) { UseShellExecute = true });
+            if (openBrowser) ShowDashboard();
             return;
         }
         // Even a service imitating our public health response is never sent a stop request.
@@ -224,7 +248,7 @@ internal sealed class NetwatchTray : ApplicationContext
             if (Owns(health))
             {
                 starting = false;
-                if (openingAfterStart) Process.Start(new ProcessStartInfo(options.BaseUrl) { UseShellExecute = true });
+                if (openingAfterStart) ShowDashboard();
                 openingAfterStart = false;
             }
             else if (child.HasExited || DateTime.UtcNow > startupDeadline)
@@ -298,6 +322,7 @@ internal sealed class NetwatchTray : ApplicationContext
     {
         if (exiting) return;
         exiting = true; timer.Stop();
+        if (dashboard != null) { dashboard.Dispose(); dashboard = null; }
         StopCollector();
         tray.Visible = false; tray.Dispose(); timer.Dispose();
         openEvent.Dispose(); startEvent.Dispose(); stopEvent.Dispose(); exitEvent.Dispose();

@@ -2,7 +2,8 @@ import fs from 'node:fs';
 import path from 'node:path';
 import http from 'node:http';
 import crypto from 'node:crypto';
-import { spawn, spawnSync } from 'node:child_process';
+import { spawn, execFile } from 'node:child_process';
+import { promisify } from 'node:util';
 import { once } from 'node:events';
 import { performance } from 'node:perf_hooks';
 import { fileURLToPath } from 'node:url';
@@ -257,21 +258,27 @@ function bytesOnDisk(dir) {
   }, 0);
 }
 
-function collectorMemory(pid) {
+async function collectorMemory(pid) {
   if (process.platform === 'win32') {
-    const result = spawnSync(
-      'powershell.exe',
-      [
-        '-NoLogo',
-        '-NoProfile',
-        '-NonInteractive',
-        '-Command',
-        `$p=Get-Process -Id ${Number(pid)} -ErrorAction Stop; [string]$p.WorkingSet64`,
-      ],
-      { windowsHide: true, encoding: 'utf8', timeout: 5000 },
-    );
-    const rss = Number(result.stdout?.trim());
-    return result.status === 0 && Number.isFinite(rss) ? rss : null;
+    // Keep serving fixture responses while PowerShell starts, especially on busy CI hosts.
+    // A synchronous process here can time out the collector and invalidate the byte oracle.
+    try {
+      const result = await promisify(execFile)(
+        'powershell.exe',
+        [
+          '-NoLogo',
+          '-NoProfile',
+          '-NonInteractive',
+          '-Command',
+          `$p=Get-Process -Id ${Number(pid)} -ErrorAction Stop; [string]$p.WorkingSet64`,
+        ],
+        { windowsHide: true, encoding: 'utf8', timeout: 5000 },
+      );
+      const rss = Number(result.stdout?.trim());
+      return Number.isFinite(rss) ? rss : null;
+    } catch {
+      return null;
+    }
   }
   if (process.platform === 'linux') {
     try {
@@ -537,7 +544,7 @@ export async function runStability(options, sourceRoot = root) {
       database.errors.push('Persisted sample count decreased');
     previousSamples = database.samples;
     if (database.errors.length) throw new Error(database.errors.join('; '));
-    currentRssBytes = collectorMemory(child.pid);
+    currentRssBytes = await collectorMemory(child.pid);
     maximumRssBytes = Math.max(maximumRssBytes, currentRssBytes || 0);
     maximumDatabaseBytes = Math.max(maximumDatabaseBytes, bytesOnDisk(dataDir));
     const current = report('running');

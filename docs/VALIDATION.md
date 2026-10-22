@@ -1,6 +1,16 @@
-# v0.2.0 preview validation
+# Preview validation
 
 Validation recorded on 2026-10-22. These results describe the tested workload and host, not an accuracy guarantee for every proxy or Windows installation.
+
+## v0.2.1 desktop GUI
+
+- All 74 automated tests and JavaScript syntax checks passed locally after the update.
+- A real Microsoft Edge WebView2 window rendered synthetic live dashboard data. The GUI smoke test passed English/Chinese switching, saving a CSV download, rejecting external embedded navigation, closing to the tray, and reopening the window.
+- The portable collector lifecycle and ownership smoke test passed with the bundled official runtime.
+- The Windows CI failure in v0.2.0 was traced to synchronous PowerShell memory inspection blocking the fixture server. The harness now reads memory asynchronously; the independent byte-oracle regression passes locally. The earlier 30-second report below remains a record of its original frozen source, not a v0.2.1 load-test claim.
+- No 24-hour test was resumed; no completed 24-hour or 72-hour validation is claimed.
+
+## v0.2.0 historical results
 
 ## Completed
 
@@ -11,16 +21,16 @@ Validation recorded on 2026-10-22. These results describe the tested workload an
 
 The final **30-second, 1,000-connection, 500-ms polling** fault/load run used the same official runtime and frozen collector source as the long run:
 
-| Measurement | Observed result |
-| --- | --- |
-| Actual wall-clock duration | 30.523 seconds |
-| Successful responses / persisted samples | 46 / 46; independent byte oracle matched |
-| Deliberate faults | 17 HTTP 503 responses, 3 collector restarts, 2 connection-counter and 2 global-counter resets |
-| SQLite integrity | `ok`; bucket and sample totals agreed |
-| Peak collector RSS | 93,003,776 bytes; excludes the harness and observer child |
-| Peak database + WAL footprint | 3,467,200 bytes |
-| Maximum measured dashboard latency | 13.49 ms |
-| Observed sampling intervals | 19.361 seconds; deliberate outages, restart startup and baselines are excluded |
+| Measurement                              | Observed result                                                                               |
+| ---------------------------------------- | --------------------------------------------------------------------------------------------- |
+| Actual wall-clock duration               | 30.523 seconds                                                                                |
+| Successful responses / persisted samples | 46 / 46; independent byte oracle matched                                                      |
+| Deliberate faults                        | 17 HTTP 503 responses, 3 collector restarts, 2 connection-counter and 2 global-counter resets |
+| SQLite integrity                         | `ok`; bucket and sample totals agreed                                                         |
+| Peak collector RSS                       | 93,003,776 bytes; excludes the harness and observer child                                     |
+| Peak database + WAL footprint            | 3,467,200 bytes                                                                               |
+| Maximum measured dashboard latency       | 13.49 ms                                                                                      |
+| Observed sampling intervals              | 19.361 seconds; deliberate outages, restart startup and baselines are excluded                |
 
 The observed-time fraction is **not packet-capture coverage**. Faults were intentionally frequent in this short test. The raw, sanitized [synthetic smoke report](validation/smoke-official-node.json) contains the exact settings and counters.
 

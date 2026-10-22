@@ -42,7 +42,7 @@ Mihomo `/connections` 是活动连接快照。采样间隔内建立又关闭的�
 
 要求：Windows 10/11、正在运行的 Mihomo / Clash Verge Rev。Windows 自带 PowerShell 5.1 即可，无需管理员权限运行本工具；个别系统策略可能限制进程识别，此时保持「待识别」。
 
-**便携版：** 从 [Releases](https://github.com/GloryPkqa/codex-netwatch/releases) 下载 `codex-netwatch-windows-x64.zip`，完整解压到可写目录，双击 `Codex-Netwatch.exe`。自带经官方 SHA-256 验证的 Node.js，无需另行安装 Node；要求 .NET Framework 4.8。托盘可打开面板、启动 / 停止本托盘创建的采集器及退出。当前 EXE 未签名；详见[便携版说明](docs/WINDOWS_PORTABLE.md)。
+**桌面便携版：** 从 [Releases](https://github.com/GloryPkqa/codex-netwatch/releases) 下载 `codex-netwatch-windows-x64.zip`，完整解压到可写目录，双击 `Codex-Netwatch.exe`，直接显示与网页版相同的 GUI。自带经官方 SHA-256 验证的 Node.js，无需另行安装 Node；要求 .NET Framework 4.8 和 Microsoft Edge WebView2 Runtime。关闭窗口后继续在托盘采集，双击托盘重新打开；托盘也提供浏览器入口及采集启停。缺少 WebView2 时可通过窗口内的微软链接安装或选择浏览器。当前 EXE 未签名；详见[便携版说明](docs/WINDOWS_PORTABLE.md)。
 
 **源码版：** 安装 **Node.js 24 或更新版本**，按以下步骤运行。
 

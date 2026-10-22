@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.2.1 — 2026-10-22
+
+- Embed the shared dashboard in a WinForms/WebView2 desktop window, including charts, language switching and downloads; keep a browser entry in the tray.
+- Close the window to the tray, suspend the hidden renderer when supported, and restore the same window when reopening the EXE.
+- Restrict embedded navigation to the configured loopback origin; open user-initiated HTTPS links in the default browser and expose no native host bridge.
+- Add a missing-runtime recovery screen, official WebView2 download link and browser fallback. Package pinned Microsoft SDK bindings, loader, licenses and provenance.
+- Add an isolated real-WebView2 GUI smoke test covering rendered data, both languages, CSV export, navigation isolation and window reopening.
+- Fix Windows stability-harness memory inspection to run asynchronously, so a slow PowerShell startup cannot block fixture responses and cause false oracle failures on CI.
+- The 24-hour validation remains incomplete and stopped at the user's request.
+
 ## 0.2.0 — 2026-10-22
 
 - Persist upload/download bursts and sustained uploads with measured contributor context, cooldowns and process totals.
