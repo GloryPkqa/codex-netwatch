@@ -2,7 +2,7 @@
 
 在本机查看 Codex 网络用量、进程归属和会话活动。
 
-[**下载 Windows x64 便携版 →**](https://github.com/GloryPkqa/codex-netwatch/releases/download/v0.2.6/codex-netwatch-windows-x64.zip) · [版本说明与校验值](https://github.com/GloryPkqa/codex-netwatch/releases/tag/v0.2.6) · [English](README.md)
+[**下载 Windows x64 便携版 →**](https://github.com/GloryPkqa/codex-netwatch/releases/latest/download/codex-netwatch-windows-x64.zip) · [版本说明与校验值](https://github.com/GloryPkqa/codex-netwatch/releases/latest) · [English](README.md)
 
 ![实际使用中的流量总览、小时趋势和目标地址](docs/overview.en.png)
 
@@ -30,7 +30,7 @@
 Get-FileHash .\codex-netwatch-windows-x64.zip -Algorithm SHA256
 ```
 
-便携版内置 Node.js，需要 **Windows 10/11 x64、.NET Framework 4.8 和 Microsoft Edge WebView2 Runtime**。当前预发布 EXE 未签名。
+便携版内置 Node.js，需要 **Windows 10/11 x64、.NET Framework 4.8 和 Microsoft Edge WebView2 Runtime**。Windows EXE 未签名。
 
 关闭窗口后继续在托盘采集；双击托盘重新打开。**设置 → 开机自启** 默认关闭，按需开启。完全退出请使用托盘“退出”。
 

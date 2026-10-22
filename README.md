@@ -2,7 +2,7 @@
 
 A local dashboard for Codex network usage, process attribution, and session activity.
 
-[**Download for Windows x64 →**](https://github.com/GloryPkqa/codex-netwatch/releases/download/v0.2.6/codex-netwatch-windows-x64.zip) · [Release notes & checksums](https://github.com/GloryPkqa/codex-netwatch/releases/tag/v0.2.6) · [简体中文](README.zh-CN.md)
+[**Download for Windows x64 →**](https://github.com/GloryPkqa/codex-netwatch/releases/latest/download/codex-netwatch-windows-x64.zip) · [Release notes & checksums](https://github.com/GloryPkqa/codex-netwatch/releases/latest) · [简体中文](README.zh-CN.md)
 
 ![Codex Netwatch showing recorded traffic, an hour of history and destinations](docs/overview.en.png)
 
@@ -32,7 +32,7 @@ A local dashboard for Codex network usage, process attribution, and session acti
 Get-FileHash .\codex-netwatch-windows-x64.zip -Algorithm SHA256
 ```
 
-The portable build includes Node.js. It requires **Windows 10/11 x64, .NET Framework 4.8, and Microsoft Edge WebView2 Runtime**. The preview EXE is unsigned.
+The portable build includes Node.js. It requires **Windows 10/11 x64, .NET Framework 4.8, and Microsoft Edge WebView2 Runtime**. The Windows EXE is unsigned.
 
 Closing the window keeps collection running in the tray. Double-click the tray to reopen it. **Settings → Start with Windows** is optional and off by default. Use the tray's Exit command to quit the desktop host.
 
