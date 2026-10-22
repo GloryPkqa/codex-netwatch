@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.2.6 — 2026-10-22
+
+- Add bilingual first-run connection guidance and a persistent Connection help entry, with steps for controller discovery, manual setup and first measured traffic.
+- Distinguish controller authorization failures, incompatible responses, unavailable controllers, process-identification limits and local collector failures. Recovery clears stale controller issues.
+- Replace the README overview with a maintainer-shared actual usage screenshot, label its measurement scope, and provide a direct Windows package download.
+- Add a repository sharing image and improve setup documentation while keeping English as the default and all data local.
+
 ## 0.2.5 — 2026-10-22
 
 - Make English the default dashboard language for new profiles, keeping Chinese and explicit Auto (system) in the existing language menu and preserving saved choices.

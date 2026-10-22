@@ -63,7 +63,10 @@ test(
   { timeout: 60000 },
   async (t) => {
     const parent = fs.mkdtempSync(path.join(os.tmpdir(), 'codex-netwatch-stability-'));
-    t.after(() => fs.rmSync(parent, { recursive: true, force: true }));
+    // Windows can briefly retain handles after the fixture child has exited.
+    t.after(() =>
+      fs.promises.rm(parent, { recursive: true, force: true, maxRetries: 10, retryDelay: 100 }),
+    );
     const options = parseOptions([
       '--duration',
       '20s',

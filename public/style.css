@@ -1230,6 +1230,79 @@ h2 .tiny-tag {
   vertical-align: middle;
   margin-left: 8px;
 }
+.setup-guide {
+  margin-bottom: 24px;
+}
+.setup-body {
+  padding: 0 24px 24px;
+}
+.setup-status {
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #14251d;
+}
+.setup-status strong {
+  color: var(--mint);
+}
+.setup-body p {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.75;
+  margin: 8px 0 0;
+}
+.setup-steps {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 28px;
+  padding-left: 22px;
+  margin: 24px 0;
+}
+.setup-steps li {
+  padding-left: 4px;
+  font-size: 14px;
+}
+.setup-steps li::marker {
+  color: var(--mint);
+  font-weight: bold;
+}
+.setup-config {
+  border-top: 1px solid var(--line);
+  padding-top: 16px;
+}
+.setup-config summary {
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--mint);
+}
+.setup-config pre {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  padding: 12px;
+  background: #101614;
+  border-radius: 8px;
+  font-size: 13px;
+}
+.setup-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-top: 20px;
+  font-size: 12px;
+}
+.setup-actions a {
+  color: var(--mint);
+}
+.setup-actions span {
+  color: var(--muted);
+}
+@media (max-width: 1050px) {
+  .setup-steps {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+}
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto;

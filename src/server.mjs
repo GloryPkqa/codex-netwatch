@@ -77,10 +77,12 @@ export function createServer(config, store, monitor, shutdown) {
     return insightCache.value;
   };
   const assets = new Map(
-    ['/', '/app.js', '/i18n.js', '/desktop.js', '/style.css', '/icon.svg'].map((route) => [
-      route,
-      path.join(config.root, 'public', route === '/' ? 'index.html' : route.slice(1)),
-    ]),
+    ['/', '/app.js', '/i18n.js', '/desktop.js', '/setup.js', '/style.css', '/icon.svg'].map(
+      (route) => [
+        route,
+        path.join(config.root, 'public', route === '/' ? 'index.html' : route.slice(1)),
+      ],
+    ),
   );
   const server = http.createServer(async (req, res) => {
     const port = server.address()?.port || config.port;

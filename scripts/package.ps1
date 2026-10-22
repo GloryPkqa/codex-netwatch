@@ -13,5 +13,7 @@ if (Test-Path -LiteralPath $stageRoot) {
 }
 New-Item -ItemType Directory -Path $stage -Force | Out-Null
 foreach ($item in $items) { Copy-Item -LiteralPath (Join-Path $projectRoot $item) -Destination $stage -Recurse -Force }
-Compress-Archive -LiteralPath $stage -DestinationPath $outputFile -Force
+Add-Type -AssemblyName System.IO.Compression.FileSystem
+if (Test-Path -LiteralPath $outputFile) { Remove-Item -LiteralPath $outputFile -Force }
+[IO.Compression.ZipFile]::CreateFromDirectory($stageRoot, $outputFile, [IO.Compression.CompressionLevel]::Optimal, $false)
 Write-Host "Source package: $outputFile"

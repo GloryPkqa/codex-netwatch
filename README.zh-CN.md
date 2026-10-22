@@ -2,9 +2,11 @@
 
 在本机查看 Codex 网络用量、进程归属和会话活动。
 
-[English](README.md) · [下载](https://github.com/GloryPkqa/codex-netwatch/releases) · [更新记录](CHANGELOG.md)
+[**下载 Windows x64 便携版 →**](https://github.com/GloryPkqa/codex-netwatch/releases/download/v0.2.6/codex-netwatch-windows-x64.zip) · [版本说明与校验值](https://github.com/GloryPkqa/codex-netwatch/releases/tag/v0.2.6) · [English](README.md)
 
-![仅包含合成数据的界面预览](docs/overview.en.png)
+![实际使用中的流量总览、小时趋势和目标地址](docs/overview.en.png)
+
+_维护者提供的实际使用示例（v0.2.5）。数值取决于活动与采集范围；“全部代理流量”包含其他应用。_
 
 **Windows 优先，需要运行中的 Mihomo / Clash 兼容控制接口。** 统计经过该代理、具有进程证据的 Codex 流量；绕过代理的流量不可见，共享连接无法精确拆成每个会话的 GB。
 
@@ -17,12 +19,14 @@
 - Windows 桌面 GUI、托盘、可选开机自启和浏览器入口。
 - 默认英文；右上角原语言菜单可切换 **中文** 或 **自动（系统）**，保留已有语言偏好。
 - 本地 SQLite 与静态资源，不含应用遥测，支持脱敏诊断。
+- 首次使用连接帮助，区分接口连接、密钥、响应不兼容和等待 Codex 新流量；顶部可随时重新打开。
 
 ## Windows 安装
 
 1. 从同一个 [Release](https://github.com/GloryPkqa/codex-netwatch/releases) 下载 `codex-netwatch-windows-x64.zip` 和 `SHA256SUMS.txt`。
 2. 核对 SHA-256，完整解压到可写目录。
 3. 在代理和 Codex 正常运行时，双击 `Codex-Netwatch.exe`。
+4. 按“连接帮助”检查状态，在 Codex 中发送新请求并等待两次采样；已有连接会先建立基线，再累计新流量。
 
 ```powershell
 Get-FileHash .\codex-netwatch-windows-x64.zip -Algorithm SHA256
@@ -59,7 +63,7 @@ node --disable-warning=ExperimentalWarning src/main.mjs
 
 ## 配置与排错
 
-支持自动发现部分 Clash Verge 配置及 Windows 命名管道，其他兼容接口可手动配置。复制 `config.example.json` 为 `config.local.json` 后编辑，重启生效。
+先查看页面顶部“连接帮助”，里面有当前状态、操作步骤和手动配置示例；采集器会自动重试。支持自动发现部分 Clash Verge 配置及 Windows 命名管道，其他兼容接口可手动配置。应填写控制接口端口，不是 HTTP / SOCKS 代理端口。复制 `config.example.json` 为 `config.local.json` 后编辑，完整退出并重新启动生效。
 
 支持 `CODEX_FLOW_CONTROLLER`、`MIHOMO_SECRET`、`CODEX_HOME`、`CODEX_FLOW_PORT` 和 `CODEX_FLOW_DATA_DIR` 环境变量。
 
@@ -71,7 +75,7 @@ node --disable-warning=ExperimentalWarning scripts/doctor.mjs
 
 ## 隐私与验证
 
-本地数据库保存目标地址、进程身份、会话元数据、token 和活动时间；不持久化聊天正文、工具内容、命令行或凭据。请勿公开 `data/`、本地配置、原始 CSV 或真实会话截图。见[安全说明](SECURITY.md)。
+本地数据库保存目标地址、进程身份、会话元数据、token 和活动时间；不持久化聊天正文、工具内容、命令行或凭据。请勿公开 `data/`、本地配置和原始 CSV；自愿分享截图前，请检查其中是否有敏感信息。见[安全说明](SECURITY.md)。
 
 CI 检查 Windows / Linux 语法与测试，并构建及检查 Windows 便携版启停。[验证记录](docs/VALIDATION.md) 说明具体范围；**不宣称已完成 24 / 72 小时验证**。
 

@@ -117,11 +117,14 @@ export class MihomoSource {
     this.current = null;
     this.endpoint = '';
     this.generation = 0;
+    this.issue = null;
   }
   async snapshot() {
     if (this.current) {
       try {
-        return await requestSnapshot(this.current);
+        const data = await requestSnapshot(this.current);
+        this.issue = null;
+        return data;
       } catch {
         this.current = null;
       }
@@ -133,6 +136,15 @@ export class MihomoSource {
     const found = outcomes.find((x) => x.status === 'fulfilled');
     if (!found) {
       const unauthorized = outcomes.some((x) => /HTTP (401|403)/.test(x.reason?.message || ''));
+      this.issue = unauthorized
+        ? 'authorization'
+        : outcomes.some(
+              (x) =>
+                /HTTP |Unexpected Mihomo|JSON|Response too large/i.test(x.reason?.message || '') ||
+                x.reason instanceof SyntaxError,
+            )
+          ? 'incompatible'
+          : 'unreachable';
       throw new Error(
         unauthorized
           ? '接口需要授权：设置 MIHOMO_SECRET 后重启。'
@@ -140,6 +152,7 @@ export class MihomoSource {
       );
     }
     this.current = found.value.candidate;
+    this.issue = null;
     this.generation++;
     this.endpoint = this.current.endpoint.startsWith('\\\\')
       ? 'Windows 命名管道'

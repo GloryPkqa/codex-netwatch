@@ -2,6 +2,14 @@
 
 Validation recorded on 2026-10-22. These results describe the tested workload and host, not an accuracy guarantee for every proxy or Windows installation.
 
+## v0.2.6 connection guidance and repository presentation
+
+- All 82 automated tests and JavaScript syntax checks passed locally. Controller fixtures cover HTTP 401/403, wrong endpoint responses, malformed JSON, response validation and recovery without exposing raw response bodies.
+- Real WebView2 checks cover opening/collapsing Connection help, English/Chinese guidance, narrow layout, startup preferences, CSV download and window lifecycle. Static button checks ignore HTML formatting whitespace.
+- The bundled portable runtime passed collector ownership, startup/stop/restart/exit, lock cleanup and foreign-service isolation checks. Packaging uses .NET ZIP creation to avoid the interactive archive progress path; test cleanup tolerates short-lived Windows file handles.
+- The README overview now uses a maintainer-shared actual usage screenshot, labelled with its v0.2.5 capture version and proxy-wide scope. The investigation screenshot remains synthetic.
+- No 24-hour validation was resumed; no completed 24/72-hour validation is claimed.
+
 ## v0.2.5 English-first defaults and documentation
 
 - All 80 automated tests and syntax checks passed locally. Language tests verify English defaults with absent, invalid or inaccessible preferences, preserve explicit Chinese/English choices, and retain opt-in system detection.

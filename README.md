@@ -2,9 +2,11 @@
 
 A local dashboard for Codex network usage, process attribution, and session activity.
 
-[Download](https://github.com/GloryPkqa/codex-netwatch/releases) · [简体中文](README.zh-CN.md) · [Changelog](CHANGELOG.md)
+[**Download for Windows x64 →**](https://github.com/GloryPkqa/codex-netwatch/releases/download/v0.2.6/codex-netwatch-windows-x64.zip) · [Release notes & checksums](https://github.com/GloryPkqa/codex-netwatch/releases/tag/v0.2.6) · [简体中文](README.zh-CN.md)
 
-![Codex Netwatch dashboard with synthetic data](docs/overview.en.png)
+![Codex Netwatch showing recorded traffic, an hour of history and destinations](docs/overview.en.png)
+
+_Actual usage example shared by the maintainer (v0.2.5). Values depend on activity and capture scope; “All proxy traffic” includes other apps._
 
 **Windows first. Requires a running Mihomo / Clash-compatible controller.** It measures observed proxy traffic, including identified Codex child processes. It cannot see traffic bypassing that controller or precisely split shared connections between chats.
 
@@ -17,6 +19,7 @@ A local dashboard for Codex network usage, process attribution, and session acti
 - Windows desktop GUI, system tray, optional startup at sign-in, and browser access.
 - English by default. Select **中文** in the top-right language menu, or choose **Auto (system)**. Existing language preferences are remembered.
 - Local SQLite storage, local UI assets, and redacted diagnostics; no application telemetry.
+- First-run connection help distinguishes controller access, authentication, incompatible responses, and waiting for new Codex traffic. Reopen it from **Connection help** at any time.
 
 [View the investigation panel](docs/investigation.en.png).
 
@@ -25,6 +28,7 @@ A local dashboard for Codex network usage, process attribution, and session acti
 1. Download `codex-netwatch-windows-x64.zip` and `SHA256SUMS.txt` from the same [release](https://github.com/GloryPkqa/codex-netwatch/releases).
 2. Verify the ZIP's SHA-256, then extract the **entire folder** to a writable location.
 3. Run `Codex-Netwatch.exe` with your proxy and Codex running.
+4. Follow **Connection help** if needed, send a new request in Codex, and wait for two samples. Existing transfers establish a baseline before new bytes accumulate.
 
 ```powershell
 Get-FileHash .\codex-netwatch-windows-x64.zip -Algorithm SHA256
@@ -61,7 +65,7 @@ First attach, restart, source switching, and reconnect establish a new baseline.
 
 ## Configuration and troubleshooting
 
-Automatic controller discovery works with supported local Clash Verge configurations and Windows named pipes. Other compatible controllers can be configured explicitly.
+Start with **Connection help** at the top of the dashboard. It shows the current connection state, setup steps and a manual configuration example. The collector retries automatically. Automatic discovery works with supported local Clash Verge configurations and Windows named pipes. Other compatible controllers can be configured explicitly. Use the **controller port**, not the HTTP / SOCKS proxy port.
 
 Copy `config.example.json` to `config.local.json`, edit it, then restart. Environment overrides include `CODEX_FLOW_CONTROLLER`, `MIHOMO_SECRET`, `CODEX_HOME`, `CODEX_FLOW_PORT`, and `CODEX_FLOW_DATA_DIR`.
 
@@ -73,7 +77,7 @@ node --disable-warning=ExperimentalWarning scripts/doctor.mjs
 
 ## Privacy and validation
 
-Local data includes destinations, process identity, session metadata, token counters, and activity times. Chat bodies, tool contents, command lines, and credentials are not persisted. Do not publish `data/`, local configuration, raw CSV, or screenshots of real sessions. See [Security and privacy](SECURITY.md).
+Local data includes destinations, process identity, session metadata, token counters, and activity times. Chat bodies, tool contents, command lines, and credentials are not persisted. Keep `data/`, local configuration and raw CSV private; inspect screenshots for sensitive information before choosing to share them. See [Security and privacy](SECURITY.md).
 
 CI checks syntax and tests on Windows/Linux and builds/tests the Windows portable lifecycle. [Validation records](docs/VALIDATION.md) describe the exact tested scope. **A completed 24/72-hour validation is not claimed.**
 

@@ -1,6 +1,65 @@
 // Source-language keys keep the Chinese copy next to its English translation.
 // Values are plain text: never inject translations as HTML.
 export const messages = Object.freeze({
+  连接帮助: 'Connection help',
+  收起连接帮助: 'Collapse connection help',
+  开始监控: 'Get connected',
+  'Windows + Mihomo / Clash 兼容控制接口': 'Windows + Mihomo / Clash-compatible controller',
+  运行兼容代理: 'Run a compatible proxy',
+  '需要 Mihomo / Clash 兼容的控制接口；仅开启系统代理或 VPN 并不代表兼容。':
+    'A Mihomo / Clash-compatible controller is required. A system proxy or VPN alone does not provide this interface.',
+  连接本地控制接口: 'Connect the local controller',
+  '优先自动发现。手动配置时使用 external-controller 地址，不能填代理端口。密钥通过 MIHOMO_SECRET 提供。':
+    'Discovery is automatic where supported. For manual setup, use the external-controller address, not the proxy port. Supply its secret through MIHOMO_SECRET.',
+  '让 Codex 产生新请求': 'Make a new request in Codex',
+  '保持程序运行，等待两次采样。只累计建立基线后的新增流量，其他程序不会计入 Codex。':
+    'Keep Netwatch running and wait for two samples. Only new traffic after the baseline is counted; other apps are excluded from Codex.',
+  '自动发现失败？查看手动配置': 'Discovery failed? Set up manually',
+  '复制程序目录中的 config.example.json 为 config.local.json，按代理实际控制地址填写 controller，然后完整退出并重新启动程序。下面仅为示例。':
+    'Copy config.example.json to config.local.json in the app folder, set controller to your actual local controller address, then fully exit and restart Netwatch. The address below is only an example.',
+  '需要授权时，在启动程序的环境中设置 MIHOMO_SECRET。不要把密钥写进截图、反馈或分享内容。':
+    'If authentication is required, set MIHOMO_SECRET in the environment used to launch Netwatch. Keep secrets out of screenshots, feedback and shared content.',
+  刷新检查: 'Refresh checks',
+  '完整配置与排错 ↗': 'Full setup and troubleshooting ↗',
+  '查看采集诊断 ↓': 'View collector diagnostics ↓',
+  '采集器会自动重试，无需反复点击。':
+    'Collection retries automatically; repeated clicks are unnecessary.',
+  本地监控程序未连接: 'Local monitor is unavailable',
+  '重新运行 Codex-Netwatch.exe 或启动脚本。这里连接的是监控程序，与代理控制接口是两层独立连接。':
+    'Run Codex-Netwatch.exe or the start script again. The dashboard connection to Netwatch is separate from the proxy controller connection.',
+  正在检查连接: 'Checking the connection',
+  '正在探测本地控制接口并准备进程识别，通常需要几秒钟。':
+    'Discovering the local controller and preparing process identification. This usually takes a few seconds.',
+  控制接口需要正确的密钥: 'The controller needs the correct secret',
+  '接口返回了 401 / 403。将 MIHOMO_SECRET 设置为代理控制接口的 secret，然后完整退出并重新启动 Netwatch。不要分享密钥或配置文件。':
+    'The controller returned 401 / 403. Set MIHOMO_SECRET to its secret, then fully exit and restart Netwatch. Do not share credentials or configuration files.',
+  接口响应不兼容: 'The controller response is incompatible',
+  '地址已响应，但不是可用的 Mihomo /connections 接口。请使用代理设置里的 external-controller 地址，而不是 HTTP / SOCKS 代理端口或订阅地址。':
+    'The address responded, but did not provide a usable Mihomo /connections response. Use the external-controller address from your proxy settings, not an HTTP / SOCKS proxy port or subscription URL.',
+  尚未连接代理控制接口: 'No proxy controller connection yet',
+  '先运行 Mihomo / Clash 兼容代理。自动发现失败时，在程序目录的 config.local.json 中填写本地 controller 地址，保存后完整退出并重新启动 Netwatch。':
+    'Start a Mihomo / Clash-compatible proxy. If discovery fails, set the local controller address in config.local.json in the app folder, then fully exit and restart Netwatch.',
+  采集暂时失败: 'Collection temporarily failed',
+  '控制接口或本地存储处理失败，采集器会自动重试。若持续出现，请检查目录是否可写和磁盘空间，并在设置中导出脱敏诊断。':
+    'Controller or local storage processing failed. Collection retries automatically. If this persists, check folder write access and disk space, then export redacted diagnostics from Settings.',
+  '控制接口已连接，进程识别受限': 'Controller connected; process identification is limited',
+  'Windows 进程识别不可用时，只能使用代理提供的进程信息。缺少证据的流量保持待识别，不会猜测为 Codex。可在采集诊断中检查状态。':
+    'When Windows process identification is unavailable, only controller process metadata can be used. Traffic without evidence stays unidentified instead of being guessed as Codex. Check collector diagnostics for status.',
+  有连接尚未识别到进程: 'Some connections have no process identity yet',
+  '在连接与去向中选择待识别进程，检查进程证据。让 Codex 通过当前代理产生新请求；其他程序的流量不会计入 Codex。':
+    'Select Unidentified processes under Connections to inspect the evidence. Make a new request in Codex through this proxy; traffic from other apps is excluded from Codex.',
+  '已识别 Codex，等待新增流量': 'Codex identified; waiting for new traffic',
+  '首次连接、重启和重连会先建立基线。让 Codex 产生新请求，再等待两次采样；历史或离线流量不会补算。':
+    'First attach, restart and reconnect establish a baseline. Make a new request in Codex and wait for two samples; historical and offline traffic is not backfilled.',
+  '控制接口已连接，等待 Codex 活动': 'Controller connected; waiting for Codex activity',
+  '在 Codex 中发送一个请求，并确认它经过当前代理。直连、绕过代理或其他控制器的流量不可见；也可扩大上方时间范围。':
+    'Send a request in Codex and check that it uses this proxy. Direct traffic, bypass traffic and other controllers are invisible here. You can also expand the time range above.',
+  '已记录 Codex 流量': 'Codex traffic is being recorded',
+  '接口和流量识别已开始工作。上方时间范围影响图表和累计用量；你可以随时重新打开此帮助。':
+    'The controller and traffic identification are working. The time range above affects charts and totals. You can reopen this help at any time.',
+  当前为演示模式: 'Demo mode is active',
+  '演示数据不用于检查真实代理。退出演示实例，正常运行 Codex-Netwatch.exe 后再检查实际连接。':
+    'Synthetic data cannot validate a real proxy. Exit the demo instance and run Codex-Netwatch.exe normally to check your actual connection.',
   暂不可用: 'Unavailable',
   '当前平台不支持套接字识别；仍可使用代理提供的进程信息。缺少证据的流量列为待识别。':
     'Socket ownership is unavailable on this platform. Proxy process metadata still works; traffic without evidence stays unidentified.',

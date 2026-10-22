@@ -150,6 +150,7 @@ export class Monitor {
       this.latest = sample;
       this.lastAt = now;
       this.state = 'connected';
+      this.controllerIssue = null;
       this.error = '';
       if (inserted !== false)
         for (const event of this.detector.consume(sample, this.alertMBPerMinute))
@@ -173,6 +174,8 @@ export class Monitor {
       }
     } catch (error) {
       this.state = 'disconnected';
+      this.controllerIssue =
+        operation === 'source' ? this.source.issue || 'unreachable' : 'collection';
       this.error = /未连接|接口需要/.test(error.message)
         ? error.message
         : '采集暂时失败，正在自动重试；空档不计为零流量。';
@@ -215,6 +218,7 @@ export class Monitor {
     return {
       state: this.state,
       error: this.error,
+      controllerIssue: this.controllerIssue || null,
       demo: this.config.demo,
       startedAt: this.startedAt,
       firstAt: this.store.firstAt(),

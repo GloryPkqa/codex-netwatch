@@ -2,6 +2,12 @@
 
 The network collector needs a **Mihomo / Clash-compatible local controller** with a compatible `/connections` response. A proxy client without that interface, another VPN, or direct traffic is outside the current network coverage. Session log reading works independently.
 
+## First connection
+
+Open **Connection help** at the top of the dashboard. New profiles without measured Codex traffic see it automatically; it can be collapsed and reopened. Its status distinguishes an unreachable controller, a 401/403 secret mismatch, an incompatible controller response, unavailable process evidence, and waiting for fresh Codex requests. A working controller with no Codex traffic is not reported as a connection failure.
+
+Use the proxy's **external-controller address**, not its HTTP/SOCKS proxy port or subscription URL. After connecting, make a new request in Codex and wait for two samples. Baselines deliberately exclude traffic from before monitoring began. Refresh checks rereads the current collector status; controller polling already retries automatically.
+
 ## Local configuration
 
 Copy `config.example.json` to `config.local.json`, edit it, and restart. The file is ignored by Git. Keep credentials and private paths out of issue reports.
@@ -34,6 +40,14 @@ $env:CODEX_FLOW_CONTROLLER = 'http://127.0.0.1:9090'
 $env:MIHOMO_SECRET = '<local-controller-secret>'
 node --disable-warning=ExperimentalWarning src/main.mjs
 ```
+
+For the portable build, fully exit the existing tray instance first. From PowerShell in the extracted app folder, set the same environment variables and launch the desktop host instead:
+
+```powershell
+Start-Process .\Codex-Netwatch.exe
+```
+
+The new process inherits that PowerShell environment. Variables set only in this shell do not persist for later double-click launches or Windows sign-in.
 
 Automatic discovery reads supported Clash Verge control configuration and enumerates matching Windows named pipes. It does not change the controller, proxy rules, or system proxy. Remote controllers, authenticated URLs, and HTTPS interception are unsupported.
 

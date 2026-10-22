@@ -117,7 +117,8 @@ See WINDOWS_PORTABLE.md for configuration, command options, runtime provenance a
 Project: https://github.com/GloryPkqa/codex-netwatch
 '@
 $readme | Set-Content -LiteralPath (Join-Path $stage 'START-HERE.txt') -Encoding UTF8
-Compress-Archive -LiteralPath $stage -DestinationPath $OutputFile -Force
+if (Test-Path -LiteralPath $OutputFile) { Remove-Item -LiteralPath $OutputFile -Force }
+[IO.Compression.ZipFile]::CreateFromDirectory($stageRoot, $OutputFile, [IO.Compression.CompressionLevel]::Optimal, $false)
 $zipHash = (Get-FileHash -LiteralPath $OutputFile -Algorithm SHA256).Hash.ToLowerInvariant()
 Write-Host "Portable package: $OutputFile"
 Write-Host "SHA256: $zipHash"

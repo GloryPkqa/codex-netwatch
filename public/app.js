@@ -8,6 +8,7 @@ import {
   captureStaticTranslations,
 } from './i18n.js';
 import { createStartupBridge } from './desktop.js';
+import { setupState, setupCopy } from './setup.js';
 const browserLanguages = navigator.languages || [navigator.language];
 let systemLocale = null,
   desktopInstance = '';
@@ -151,6 +152,7 @@ function params() {
 
 function render(data) {
   latest = data;
+  renderSetup();
   const { status: s, totals: totals } = data;
   $('statusPill').className = `status-pill ${s.state}`;
   $('statusText').textContent =
@@ -669,6 +671,7 @@ async function refresh() {
   }
 }
 function renderUnavailable() {
+  renderSetup(true);
   $('statusPill').className = 'status-pill disconnected';
   $('statusText').textContent = t(stopped ? '采集已停止' : '监控程序未连接');
   if (!stopped) {
@@ -686,6 +689,51 @@ function refreshNow() {
   clearTimeout(refresh.timer);
   refresh();
 }
+let setupAcknowledged = false,
+  setupVisibility = null;
+try {
+  setupAcknowledged = safeStorage()?.getItem('codex-netwatch-setup-seen') === 'yes';
+} catch {
+  /* Optional preference. */
+}
+function acknowledgeSetup() {
+  setupAcknowledged = true;
+  try {
+    safeStorage()?.setItem('codex-netwatch-setup-seen', 'yes');
+  } catch {
+    /* Optional preference. */
+  }
+}
+function renderSetup(unavailable = disconnected || stopped) {
+  const state = setupState(latest?.status, latest?.totals, unavailable);
+  const copy = setupCopy[state];
+  $('setupStatus').textContent = t(copy[0]);
+  $('setupHint').textContent = t(copy[1]);
+  $('setupGuide').dataset.state = state;
+  // Existing profiles with observed data need no automatic walkthrough.
+  if (state === 'ready') acknowledgeSetup();
+  const visible = setupVisibility ?? (!setupAcknowledged && state !== 'demo');
+  $('setupGuide').hidden = !visible;
+  $('setupButton').setAttribute('aria-expanded', String(visible));
+}
+$('setupButton').addEventListener('click', () => {
+  setupVisibility = $('setupGuide').hidden;
+  if (!setupVisibility) acknowledgeSetup();
+  renderSetup();
+  if (setupVisibility) $('setupGuide').scrollIntoView({ block: 'start', behavior: 'instant' });
+});
+$('closeSetup').addEventListener('click', () => {
+  setupVisibility = false;
+  acknowledgeSetup();
+  renderSetup();
+  $('setupButton').focus();
+});
+$('retrySetup').addEventListener('click', refreshNow);
+$('setupDiagnostics').addEventListener('click', () => {
+  setupVisibility = false;
+  acknowledgeSetup();
+  renderSetup();
+});
 $('range').addEventListener('change', () => {
   $('customRange').hidden = $('range').value !== 'custom';
   $('exportButton').disabled = $('range').value === 'custom' && !customRange;
@@ -914,6 +962,7 @@ $('language').addEventListener('change', () => {
   document.documentElement.lang = language;
   translateStatic(language);
   renderStartupState();
+  renderSetup();
   $('toast').hidden = true;
   $('chartHint').textContent = t('悬停查看采样值');
   if (latest) render(latest);

@@ -43,6 +43,22 @@ internal static class NetwatchGuiSmoke
                 if (await window.Browser.CoreWebView2.ExecuteScriptAsync("document.querySelector('#processRows').textContent.includes('browser.exe')") != "true")
                     throw new Exception("All-proxy process comparison did not show the other app.");
                 await window.Browser.CoreWebView2.ExecuteScriptAsync("document.querySelector('#processScope').value='codex'; document.querySelector('#processScope').dispatchEvent(new Event('change'))");
+                await window.Browser.CoreWebView2.ExecuteScriptAsync("document.querySelector('#setupButton').click()");
+                if (await window.Browser.CoreWebView2.ExecuteScriptAsync("!document.querySelector('#setupGuide').hidden && document.querySelector('#setupGuide').dataset.state === 'demo' && document.querySelector('#setupButton').getAttribute('aria-expanded') === 'true'") != "true")
+                    throw new Exception("Connection help did not open with the actual collector state.");
+                using (FileStream image = File.Create(Path.ChangeExtension(args[3], ".setup.png")))
+                    await window.Browser.CoreWebView2.CapturePreviewAsync(CoreWebView2CapturePreviewImageFormat.Png, image);
+                await window.Browser.CoreWebView2.ExecuteScriptAsync("document.querySelector('#language').value='zh-CN'; document.querySelector('#language').dispatchEvent(new Event('change'))");
+                if (await window.Browser.CoreWebView2.ExecuteScriptAsync("document.querySelector('#setupStatus').textContent.trim() === '当前为演示模式' && document.querySelector('#setupButton').textContent.trim() === '连接帮助'") != "true")
+                    throw new Exception("Connection help did not follow the language selection.");
+                window.ClientSize = new System.Drawing.Size(800, 700);
+                await Task.Delay(150);
+                if (await window.Browser.CoreWebView2.ExecuteScriptAsync("document.documentElement.scrollWidth <= window.innerWidth") != "true")
+                    throw new Exception("Connection help overflowed a narrow window.");
+                await window.Browser.CoreWebView2.ExecuteScriptAsync("document.querySelector('#closeSetup').click(); document.querySelector('#language').value='en'; document.querySelector('#language').dispatchEvent(new Event('change'))");
+                if (await window.Browser.CoreWebView2.ExecuteScriptAsync("document.querySelector('#setupGuide').hidden && document.querySelector('#setupButton').getAttribute('aria-expanded') === 'false'") != "true")
+                    throw new Exception("Connection help did not collapse.");
+                window.ClientSize = new System.Drawing.Size(1440, 900);
                 await window.Browser.CoreWebView2.ExecuteScriptAsync("document.querySelector('#settingsButton').click()");
                 deadline = DateTime.UtcNow.AddSeconds(5);
                 while (DateTime.UtcNow < deadline) {
@@ -125,7 +141,7 @@ internal static class NetwatchGuiSmoke
                 await Task.Delay(200);
                 using (FileStream image = File.Create(Path.ChangeExtension(args[3], ".overview.png")))
                     await window.Browser.CoreWebView2.CapturePreviewAsync(CoreWebView2CapturePreviewImageFormat.Png, image);
-                File.WriteAllText(output, "{\"status\":\"passed\",\"checks\":[\"real WebView2 dashboard data\",\"Codex-only default and all-proxy ranking switch\",\"sidebar follows scroll\",\"startup switch (injected preference)\",\"English and Chinese switch\",\"external navigation isolation\",\"CSV download\",\"close to tray and reopen\"]}");
+                File.WriteAllText(output, "{\"status\":\"passed\",\"checks\":[\"real WebView2 dashboard data\",\"bilingual connection help and narrow layout\",\"Codex-only default and all-proxy ranking switch\",\"sidebar follows scroll\",\"startup switch (injected preference)\",\"English and Chinese switch\",\"external navigation isolation\",\"CSV download\",\"close to tray and reopen\"]}");
                 Environment.ExitCode = 0;
             }
             catch (Exception error)
