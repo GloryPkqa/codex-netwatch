@@ -383,9 +383,18 @@ export async function runStability(options, sourceRoot = root) {
   };
   process.once('SIGINT', shouldStop);
   process.once('SIGTERM', shouldStop);
+  let quiescing = false;
+  const heldResponses = new Set();
   const server = http.createServer((req, res) => {
     if (req.url !== '/connections') {
       res.writeHead(404).end();
+      return;
+    }
+    if (quiescing) {
+      // Stop serving new snapshots before auditing a graceful shutdown. A response
+      // already served must be committed; a request still waiting has no sample yet.
+      heldResponses.add(res);
+      res.once('close', () => heldResponses.delete(res));
       return;
     }
     const elapsed = performance.now() - started;
@@ -411,6 +420,7 @@ export async function runStability(options, sourceRoot = root) {
     }),
   );
   const launch = async () => {
+    quiescing = false;
     oracle.reset();
     monitorPort = await availablePort();
     const stdout = fs.openSync(path.join(workDir, 'collector.stdout.log'), 'a');
@@ -459,6 +469,17 @@ export async function runStability(options, sourceRoot = root) {
   };
   const stop = async () => {
     if (!child || child.exitCode !== null) return;
+    quiescing = true;
+    const drainDeadline = performance.now() + 1500;
+    try {
+      while (performance.now() < drainDeadline) {
+        const persisted = auditDatabase(dataDir, oracle, false, options.intervalMs);
+        if (persisted.errors.length || persisted.samples === oracle.prefix.length - 1) break;
+        await pause(25);
+      }
+    } catch {
+      /* Final auditing reports errors; cleanup must still stop the child. */
+    }
     expectedStops.add(child);
     const done = once(child, 'exit');
     try {
@@ -479,6 +500,8 @@ export async function runStability(options, sourceRoot = root) {
       throw new Error('Collector did not stop gracefully within 5 seconds');
     }
     if (child.exitCode !== 0) throw new Error('Collector exited with a nonzero status');
+    for (const response of heldResponses) response.destroy();
+    heldResponses.clear();
   };
   const report = (status) => ({
     reportVersion: 1,

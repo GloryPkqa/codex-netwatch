@@ -2,6 +2,12 @@
 
 Validation recorded on 2026-10-22. These results describe the tested workload and host, not an accuracy guarantee for every proxy or Windows installation.
 
+## v0.2.2 startup preference
+
+- The desktop GUI smoke also toggles the startup button on/off against an injected preference, without writing a real Windows startup value.
+- Fixture shutdown now stops serving new snapshots before the final audit, allowing a response already served to commit before stopping the child. This addresses the remaining Windows CI response/commit race; it does not relax the independent byte comparison.
+- Startup is off by default and controlled only through an explicit window/tray action.
+
 ## v0.2.1 desktop GUI
 
 - All 74 automated tests and JavaScript syntax checks passed locally after the update.

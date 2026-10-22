@@ -15,7 +15,9 @@ internal static class NetwatchGuiSmoke
         Application.EnableVisualStyles(); Application.SetCompatibleTextRenderingDefault(false);
         output = args[2];
         List<string> failures = new List<string>();
-        DashboardWindow window = new DashboardWindow(args[0], args[1], delegate { }, delegate(string error) { failures.Add(error); });
+        bool startupEnabled = false;
+        DashboardWindow window = new DashboardWindow(args[0], args[1], delegate { }, delegate(string error) { failures.Add(error); },
+            delegate { return startupEnabled; }, delegate(bool enabled) { startupEnabled = enabled; });
         window.Shown += async delegate {
             try
             {
@@ -30,6 +32,10 @@ internal static class NetwatchGuiSmoke
                 }
                 if (!loaded) throw new Exception("Dashboard data did not render in WebView2.");
                 if (failures.Count != 0) throw new Exception("WebView2 initialization failed.");
+                window.StartupButton.PerformClick();
+                if (!startupEnabled) throw new Exception("Startup button did not enable the preference.");
+                window.StartupButton.PerformClick();
+                if (startupEnabled) throw new Exception("Startup button did not disable the preference.");
                 await window.Browser.CoreWebView2.ExecuteScriptAsync("document.querySelector('#language').value='en'; document.querySelector('#language').dispatchEvent(new Event('change'));");
                 await Task.Delay(350);
                 if (await window.Browser.CoreWebView2.ExecuteScriptAsync("document.documentElement.lang") != "\"en\"")
@@ -63,7 +69,7 @@ internal static class NetwatchGuiSmoke
                 await Task.Delay(250);
                 using (FileStream image = File.Create(args[3]))
                     await window.Browser.CoreWebView2.CapturePreviewAsync(CoreWebView2CapturePreviewImageFormat.Png, image);
-                File.WriteAllText(output, "{\"status\":\"passed\",\"checks\":[\"real WebView2 dashboard data\",\"English and Chinese switch\",\"external navigation isolation\",\"CSV download\",\"close to tray and reopen\"]}");
+                File.WriteAllText(output, "{\"status\":\"passed\",\"checks\":[\"real WebView2 dashboard data\",\"startup button on and off (injected preference)\",\"English and Chinese switch\",\"external navigation isolation\",\"CSV download\",\"close to tray and reopen\"]}");
                 Environment.ExitCode = 0;
             }
             catch (Exception error)

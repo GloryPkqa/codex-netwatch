@@ -87,7 +87,7 @@ $icon = Join-Path $stageRoot 'Netwatch.ico'
 $compiler = Join-Path $env:WINDIR 'Microsoft.NET\Framework64\v4.0.30319\csc.exe'
 if (!(Test-Path -LiteralPath $compiler)) { throw 'Windows .NET Framework C# compiler is required to build the tray host.' }
 $exe = Join-Path $stage 'Codex-Netwatch.exe'
-& $compiler /nologo /optimize+ /target:winexe /platform:x64 /codepage:65001 /reference:System.Windows.Forms.dll /reference:System.Drawing.dll /reference:System.Web.Extensions.dll /reference:System.dll /reference:System.Core.dll ("/reference:" + (Join-Path $stage 'Microsoft.Web.WebView2.Core.dll')) ("/reference:" + (Join-Path $stage 'Microsoft.Web.WebView2.WinForms.dll')) ("/win32manifest:" + (Join-Path $projectRoot 'desktop\app.manifest')) ("/win32icon:" + $icon) ("/resource:" + $icon + ',Netwatch.ico') ("/out:" + $exe) (Join-Path $projectRoot 'desktop\NetwatchTray.cs') (Join-Path $projectRoot 'desktop\DashboardWindow.cs')
+& $compiler /nologo /optimize+ /target:winexe /platform:x64 /codepage:65001 /reference:System.Windows.Forms.dll /reference:System.Drawing.dll /reference:System.Web.Extensions.dll /reference:System.dll /reference:System.Core.dll ("/reference:" + (Join-Path $stage 'Microsoft.Web.WebView2.Core.dll')) ("/reference:" + (Join-Path $stage 'Microsoft.Web.WebView2.WinForms.dll')) ("/win32manifest:" + (Join-Path $projectRoot 'desktop\app.manifest')) ("/win32icon:" + $icon) ("/resource:" + $icon + ',Netwatch.ico') ("/out:" + $exe) (Join-Path $projectRoot 'desktop\NetwatchTray.cs') (Join-Path $projectRoot 'desktop\DashboardWindow.cs') (Join-Path $projectRoot 'desktop\StartupRegistration.cs')
 if ($LASTEXITCODE -ne 0 -or !(Test-Path -LiteralPath $exe)) { throw 'Tray host compilation failed.' }
 @'
 <?xml version="1.0" encoding="utf-8"?>
@@ -109,7 +109,9 @@ An existing monitor is view-only from this tray. Its collector is never stopped 
 Windows 10/11 x64, .NET Framework 4.8, and Microsoft Edge WebView2 Runtime are required.
 If WebView2 is missing, the window offers Microsoft's download page and browser fallback.
 This preview is unsigned. Compare the release SHA-256 before running.
-No autostart, system proxy modification, TLS interception, or remote telemetry is installed.
+Start with Windows is optional and off by default. Enable it in the window or tray.
+It uses the current user's Run registry key and starts in the tray at sign-in.
+No system proxy modification, TLS interception, or remote telemetry is installed.
 
 See WINDOWS_PORTABLE.md for configuration, command options, runtime provenance and limitations.
 Project: https://github.com/GloryPkqa/codex-netwatch

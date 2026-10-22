@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.2.2 — 2026-10-22
+
+- Add a Start with Windows button in the desktop window and a matching checked tray item. Off by default; writes only the current user's Run value when explicitly toggled, starts in the tray at sign-in, and can be disabled again.
+- Preserve other installations' startup entries when disabling this installation; no administrator permission, scheduled task or service is required.
+- Quiesce synthetic fixture responses before auditing a stopped collector, fixing the Windows CI shutdown race between a served response and its SQLite commit.
+
 ## 0.2.1 — 2026-10-22
 
 - Embed the shared dashboard in a WinForms/WebView2 desktop window, including charts, language switching and downloads; keep a browser entry in the tray.

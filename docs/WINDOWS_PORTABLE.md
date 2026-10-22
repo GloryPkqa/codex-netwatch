@@ -10,9 +10,15 @@ Download the portable ZIP from Releases, verify its SHA-256, extract the whole f
 
 The tray follows the Windows UI language and provides desktop dashboard, browser, collector start/stop, data-folder and exit actions. Closing the window hides it to the tray and leaves collection running. The hidden renderer is suspended when supported and resumes on reopen. Stopping from the dashboard keeps the tray available for restart. Exit stops only the collector started by this tray. An already running compatible monitor is opened in view-only mode; this tray never stops it.
 
-同一数据目录只允许一个托盘实例和一个采集器。重新运行 EXE 会打开现有页面。端口冲突、配置错误或无法写入会显示托盘通知；日志在 `data/tray.log`（最大约 2 MB，保留一个轮换副本）。没有开机自启或自动升级。
+同一数据目录只允许一个托盘实例和一个采集器。重新运行 EXE 会打开现有页面。端口冲突、配置错误或无法写入会显示托盘通知；日志在 `data/tray.log`（最大约 2 MB，保留一个轮换副本）。不含自动升级。
 
-One tray instance and one collector are allowed per data directory. Running the EXE again opens the existing dashboard. Startup failures appear as tray notifications and are recorded in `data/tray.log`, which rotates at roughly 2 MB with one previous file. There is no startup registration or automatic updater.
+One tray instance and one collector are allowed per data directory. Running the EXE again opens the existing dashboard. Startup failures appear as tray notifications and are recorded in `data/tray.log`, which rotates at roughly 2 MB with one previous file. There is no automatic updater.
+
+### 开机自启 / Start with Windows
+
+桌面窗口顶部的“开机自启：开启 / 关闭”按钮及托盘“开机自启”菜单可随时切换，默认关闭。开启后，在当前用户登录 Windows 时启动托盘采集，不弹出面板。它仅写入 `HKCU\Software\Microsoft\Windows\CurrentVersion\Run` 的 `CodexNetwatch` 值，内容为当前 EXE 路径加 `--no-browser`，不需要管理员权限。关闭时仅删除属于当前安装位置的值。移动便携目录前请先关闭自启，在新位置运行后再开启；直接删除目录不会自动清理注册项。
+
+The window's Start with Windows ON/OFF button and checked tray item control this optional preference. It is off by default. Enabling writes the current user's `CodexNetwatch` Run value with the quoted EXE path and `--no-browser`; Windows sign-in starts collection in the tray without opening the dashboard. Disabling removes only the value owned by this installation. No administrator permission is needed. Disable before moving the portable folder, then enable from its new location. Deleting the folder does not remove the Run value automatically.
 
 ## 配置 / Configuration
 

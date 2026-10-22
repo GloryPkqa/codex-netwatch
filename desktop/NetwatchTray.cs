@@ -16,7 +16,7 @@ using System.Windows.Forms;
 [assembly: AssemblyDescription("Portable local dashboard, collector and system tray host")]
 [assembly: AssemblyCompany("GloryPkqa")]
 [assembly: AssemblyProduct("Codex Netwatch")]
-[assembly: AssemblyVersion("0.2.1.0")]
+[assembly: AssemblyVersion("0.2.2.0")]
 
 internal sealed class TrayOptions
 {
@@ -71,6 +71,7 @@ internal sealed class NetwatchTray : ApplicationContext
     private readonly string token;
     private Process child;
     private DashboardWindow dashboard;
+    private readonly StartupRegistration startup;
     private bool starting, exiting, openingAfterStart;
     private DateTime startupDeadline, nextHealth;
     private readonly object logLock = new object();
@@ -80,6 +81,7 @@ internal sealed class NetwatchTray : ApplicationContext
     internal NetwatchTray(TrayOptions value)
     {
         options = value;
+        startup = new StartupRegistration(Application.ExecutablePath);
         using (RandomNumberGenerator random = RandomNumberGenerator.Create())
         {
             byte[] bytes = new byte[32]; random.GetBytes(bytes);
@@ -95,6 +97,16 @@ internal sealed class NetwatchTray : ApplicationContext
         menu.Items.Add(new ToolStripSeparator());
         menu.Items.Add(Text("Open dashboard", "打开监控页面"), null, delegate { OpenDashboard(); });
         menu.Items.Add(Text("Open in browser", "在浏览器打开"), null, delegate { OpenBrowser(); });
+        ToolStripMenuItem autoStart = new ToolStripMenuItem(Text("Start with Windows", "开机自启"));
+        autoStart.Click += delegate {
+            try { startup.SetEnabled(!startup.Enabled); autoStart.Checked = startup.Enabled; }
+            catch (Exception error) { ShowFailure(error.Message); }
+        };
+        menu.Opening += delegate {
+            try { autoStart.Checked = startup.Enabled; }
+            catch { autoStart.Enabled = false; }
+        };
+        menu.Items.Add(autoStart);
         start = new ToolStripMenuItem(Text("Start collector", "启动采集"), null, delegate { StartCollector(false); });
         stop = new ToolStripMenuItem(Text("Stop collector", "停止采集"), null, delegate { StopCollector(); });
         menu.Items.Add(start); menu.Items.Add(stop);
@@ -168,7 +180,7 @@ internal sealed class NetwatchTray : ApplicationContext
                     delegate(string message) {
                         Log("webview", message);
                         tray.ShowBalloonTip(8000, "Codex Netwatch", Text("Desktop view unavailable; the collector is still controlled from the tray.", "内置面板暂不可用，仍可通过托盘控制采集或打开浏览器。"), ToolTipIcon.Warning);
-                    });
+                    }, delegate { return startup.Enabled; }, delegate(bool enabled) { startup.SetEnabled(enabled); });
                 dashboard.Icon = tray.Icon;
             }
             dashboard.ShowDashboard();

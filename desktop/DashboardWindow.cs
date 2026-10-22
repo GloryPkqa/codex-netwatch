@@ -20,12 +20,17 @@ internal sealed class DashboardWindow : Form
     private readonly Label message;
     private bool initializing, initialized, rendererFailed;
     private readonly HashSet<ulong> blockedNavigations = new HashSet<ulong>();
+    private readonly Func<bool> readStartup;
+    private readonly Action<bool> writeStartup;
+    private Button startupButton;
     private readonly bool chinese = CultureInfo.CurrentUICulture.TwoLetterISOLanguageName == "zh";
 
     private string Local(string en, string zh) { return chinese ? zh : en; }
-    internal DashboardWindow(string baseUrl, string profileFolder, Action<string> external, Action<string> failure)
+    internal DashboardWindow(string baseUrl, string profileFolder, Action<string> external, Action<string> failure,
+        Func<bool> getStartup = null, Action<bool> setStartup = null)
     {
         origin = new Uri(baseUrl); profile = profileFolder; openExternal = external; reportFailure = failure;
+        readStartup = getStartup; writeStartup = setStartup;
         Text = "Codex Netwatch";
         StartPosition = FormStartPosition.CenterScreen;
         Rectangle workingArea = Screen.PrimaryScreen.WorkingArea;
@@ -51,6 +56,28 @@ internal sealed class DashboardWindow : Form
         runtime.Click += delegate { openExternal("https://developer.microsoft.com/microsoft-edge/webview2/"); };
         actions.Controls.Add(retry); actions.Controls.Add(browser); actions.Controls.Add(runtime);
         fallback.Controls.Add(message); fallback.Controls.Add(actions); Controls.Add(fallback);
+        if (readStartup != null && writeStartup != null)
+        {
+            FlowLayoutPanel toolbar = new FlowLayoutPanel(); toolbar.Dock = DockStyle.Top; toolbar.Height = 44;
+            toolbar.BackColor = Color.FromArgb(22, 29, 31); toolbar.Padding = new Padding(10, 6, 10, 6);
+            startupButton = new Button(); startupButton.AutoSize = true; startupButton.FlatStyle = FlatStyle.Flat;
+            startupButton.ForeColor = Color.FromArgb(209, 250, 228); startupButton.BackColor = Color.FromArgb(34, 51, 43);
+            startupButton.AccessibleName = Local("Start with Windows", "开机自启");
+            startupButton.Click += delegate {
+                try { writeStartup(!readStartup()); RefreshStartup(); }
+                catch (Exception error) {
+                    reportFailure(error.Message);
+                    MessageBox.Show(this, Local("Could not save startup preference.", "无法保存开机自启设置。") + "\n" + error.Message,
+                        "Codex Netwatch", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                }
+            };
+            Label hint = new Label(); hint.AutoSize = true; hint.Margin = new Padding(12, 8, 0, 0);
+            hint.ForeColor = Color.FromArgb(157, 177, 173);
+            hint.Text = Local("Close the window to continue in the tray", "关闭窗口后继续在托盘采集");
+            toolbar.Controls.Add(startupButton); toolbar.Controls.Add(hint); Controls.Add(toolbar);
+            Activated += delegate { RefreshStartup(); };
+            RefreshStartup();
+        }
         Shown += async delegate { await InitializeDashboard(); };
         FormClosing += delegate(object sender, FormClosingEventArgs args) {
             if (args.CloseReason == CloseReason.UserClosing) { args.Cancel = true; Hide(); }
@@ -72,6 +99,16 @@ internal sealed class DashboardWindow : Form
         if (WindowState == FormWindowState.Minimized) WindowState = FormWindowState.Normal;
         Activate();
     }
+    private void RefreshStartup()
+    {
+        if (startupButton == null) return;
+        try {
+            startupButton.Text = readStartup() ? Local("Start with Windows: ON", "开机自启：开启") : Local("Start with Windows: OFF", "开机自启：关闭");
+        } catch {
+            startupButton.Text = Local("Startup unavailable", "无法读取自启设置"); startupButton.Enabled = false;
+        }
+    }
+    internal Button StartupButton { get { return startupButton; } }
     internal bool IsLocal(string address)
     {
         Uri uri;
