@@ -26,7 +26,7 @@
       <div class="sidebar-bottom">
         <span class="local-dot"></span> 数据只保存在本机
         <p>无云端 · 无遥测 · 无外部资源</p>
-        <span class="version">v0.2.2 / MIHOMO ADAPTER</span>
+        <span class="version">v0.2.3 / MIHOMO ADAPTER</span>
       </div>
     </aside>
     <main>
@@ -140,6 +140,10 @@
               <p>定位已观测的突发上传、下载和持续上传，不按会话猜测流量。</p>
             </div>
           </div>
+          <div class="coverage-context">
+            <span class="tiny-tag neutral">全部代理连接</span
+            ><span>用于检查采集覆盖情况，包含其他程序，不是 Codex 专属用量。</span>
+          </div>
           <p id="coverageSummary" class="coverage-summary">等待观测记录</p>
           <p class="insight-note">
             未识别占比仅针对连接快照，不代表完整抓包覆盖率；代理全局与连接快照可能存在差额。
@@ -173,11 +177,18 @@
             <div id="gapRows" class="gap-list"></div>
           </article>
           <article class="panel">
-            <div class="panel-heading">
+            <div class="panel-heading process-heading">
               <div>
-                <h2>进程流量排行</h2>
-                <p>所选时间范围的全部已观测进程，仅展示前 8 项。</p>
+                <h2 id="processTitle">Codex 进程流量排行</h2>
+                <p id="processCaption">
+                  仅显示已识别的 Codex 进程及子进程，按上传与下载合计排序，最多 8 项。
+                </p>
               </div>
+              <label class="sr-only" for="processScope">排行统计范围</label>
+              <select id="processScope">
+                <option value="codex">仅 Codex</option>
+                <option value="all">全部代理进程</option>
+              </select>
             </div>
             <div class="table-scroll">
               <table>

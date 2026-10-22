@@ -221,7 +221,8 @@ function duration(ms) {
     : t('{value} 分钟', { value: (ms / 60000).toFixed(1) });
 }
 function renderInsights(data) {
-  const signature = language + JSON.stringify(data);
+  const processScope = $('processScope').value;
+  const signature = language + processScope + JSON.stringify(data);
   if (signature === insightsSignature) return;
   insightsSignature = signature;
   const events = $('anomalyRows'),
@@ -289,8 +290,23 @@ function renderInsights(data) {
     );
     gaps.append(row);
   }
-  if (!data?.processes?.length) emptyRow(processes, 3, t('暂无进程流量排行。'));
-  for (const process of (data?.processes || []).slice(0, 8)) {
+  const codexOnly = processScope !== 'all';
+  $('processTitle').textContent = t(codexOnly ? 'Codex 进程流量排行' : '全部代理进程流量排行');
+  $('processCaption').textContent = t(
+    codexOnly
+      ? '仅显示已识别的 Codex 进程及子进程，按上传与下载合计排序，最多 8 项。'
+      : '对照全部代理程序的用量；其他进程和待识别流量不会计入 Codex，最多 8 项。',
+  );
+  const processData = codexOnly
+    ? data?.codexProcesses || (data?.processes || []).filter((row) => row.scope === 'codex')
+    : data?.processes;
+  if (!processData?.length)
+    emptyRow(
+      processes,
+      3,
+      t(codexOnly ? '所选范围暂无已识别的 Codex 进程流量。' : '暂无进程流量排行。'),
+    );
+  for (const process of (processData || []).slice(0, 8)) {
     const tr = node('tr'),
       identity = node('td', process.process || t('待识别'));
     identity.append(
@@ -299,6 +315,8 @@ function renderInsights(data) {
         `${t(scopeName[process.scope] || '全部进程')} · ${process.pidCount ? t('{count} 个 PID', { count: process.pidCount }) : t('PID 未知')}`,
       ),
     );
+    identity.title = process.process || t('待识别');
+    if (process.scope === 'codex') identity.querySelector('small').classList.add('codex-evidence');
     tr.append(
       identity,
       node('td', byteText(process.up), 'number'),
@@ -678,6 +696,7 @@ $('applyRange').addEventListener('click', () => {
   refreshNow();
 });
 $('scope').addEventListener('change', refreshNow);
+$('processScope').addEventListener('change', () => latest && renderInsights(latest.insights));
 $('search').addEventListener('input', renderConnections);
 $('sessionSearch').addEventListener('input', () => latest && renderSessions(latest.sessions));
 $('sessionLimit').addEventListener('change', () => latest && renderSessions(latest.sessions));
@@ -825,12 +844,42 @@ $('notifyButton').addEventListener('click', async () => {
     toast(t('桌面提醒已启用，需保持页面打开。'));
   } else toast(t('浏览器未允许通知，提醒仍会记录在页面。'));
 });
-document.querySelectorAll('.nav-link').forEach((link) =>
+const navigation = [...document.querySelectorAll('.nav-link')];
+function selectNavigation(link) {
+  for (const item of navigation) {
+    item.classList.toggle('active', item === link);
+    if (item === link) item.setAttribute('aria-current', 'location');
+    else item.removeAttribute('aria-current');
+  }
+}
+navigation.forEach((link) =>
   link.addEventListener('click', () => {
-    document.querySelectorAll('.nav-link').forEach((x) => x.classList.remove('active'));
-    link.classList.add('active');
+    selectNavigation(link);
   }),
 );
+let navigationFrame = 0;
+function syncNavigation() {
+  navigationFrame = 0;
+  let selected = navigation[0];
+  for (const link of navigation) {
+    const section = document.querySelector(link.getAttribute('href'));
+    if (section && section.getBoundingClientRect().top <= 130) selected = link;
+  }
+  if (
+    window.scrollY > 0 &&
+    window.scrollY + window.innerHeight >= document.documentElement.scrollHeight - 2
+  )
+    selected = navigation.at(-1);
+  selectNavigation(selected);
+}
+window.addEventListener(
+  'scroll',
+  () => {
+    if (!navigationFrame) navigationFrame = requestAnimationFrame(syncNavigation);
+  },
+  { passive: true },
+);
+syncNavigation();
 document.addEventListener('visibilitychange', () => {
   if (!document.hidden) refreshNow();
 });

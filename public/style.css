@@ -15,7 +15,7 @@
 }
 html {
   scroll-behavior: smooth;
-  scroll-padding-top: 30px;
+  scroll-padding-top: 100px;
 }
 body {
   margin: 0;
@@ -141,6 +141,10 @@ main {
   padding: 0 42px 24px;
 }
 .topbar {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: var(--bg);
   height: 82px;
   border-bottom: 1px solid var(--line);
   display: flex;
@@ -411,8 +415,9 @@ h2 {
   margin: 0 0 4px;
 }
 .panel-heading p {
-  font-size: 10px;
+  font-size: 11px;
   color: var(--muted);
+  line-height: 1.7;
 }
 .legend {
   display: flex;
@@ -539,10 +544,10 @@ table {
   border-collapse: collapse;
   text-align: left;
   white-space: nowrap;
-  font-size: 11px;
+  font-size: 12px;
 }
 th {
-  font-size: 9px;
+  font-size: 10px;
   color: #829489;
   font-weight: 500;
   background: #151a17;
@@ -1113,6 +1118,43 @@ th {
   color: var(--mint);
   font-size: 12px;
 }
+.coverage-context {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 0 24px 12px;
+  color: var(--muted);
+  font-size: 11px;
+}
+.process-heading {
+  flex-wrap: wrap;
+  align-items: flex-start;
+}
+.process-heading > div {
+  flex: 1 1 240px;
+  min-width: 0;
+}
+.process-heading select {
+  font-size: 11px;
+  padding: 7px 10px;
+  max-width: 100%;
+}
+.investigation td small.codex-evidence {
+  color: var(--mint);
+}
+.table-scroll,
+.gap-list {
+  scrollbar-width: thin;
+  scrollbar-color: #46544c transparent;
+  scrollbar-gutter: stable;
+}
+.table-scroll {
+  overscroll-behavior-x: contain;
+}
+section[id] {
+  scroll-margin-top: 20px;
+}
 .insight-note {
   padding: 0 24px 20px;
   color: var(--muted);
@@ -1155,6 +1197,14 @@ th {
   color: var(--muted);
   font-size: 10px;
 }
+.gap-row small {
+  display: block;
+  margin-top: 5px;
+  line-height: 1.7;
+}
+.gap-row:last-child {
+  border-bottom: 0;
+}
 .diagnostic-export {
   margin-top: 24px;
   padding-top: 20px;
@@ -1171,4 +1221,12 @@ th {
 h2 .tiny-tag {
   vertical-align: middle;
   margin-left: 8px;
+}
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  .switch span {
+    transition: none;
+  }
 }

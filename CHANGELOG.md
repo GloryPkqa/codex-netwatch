@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.2.3 — 2026-10-22
+
+- Default process rankings to identified Codex processes and children; provide an explicit all-proxied-app comparison with a scope-specific title, explanation and empty state in both languages.
+- Query Codex rankings before applying the limit, so high-traffic unrelated apps cannot hide smaller Codex processes.
+- Label proxy-wide coverage counters separately from Codex usage; keep unrelated and unknown bytes excluded from Codex totals.
+- Increase table and helper-text readability, highlight Codex process evidence, improve compact heading wrapping and scrollbar styling, and respect reduced-motion preferences.
+- Keep the sidebar's selected section and accessible current-location marker in sync while scrolling.
+- Keep language and settings controls available in a sticky top bar, with section anchors offset below it.
+
 ## 0.2.2 — 2026-10-22
 
 - Add a Start with Windows switch inside Monitor settings and a matching checked tray item, with no extra toolbar. The switch follows the dashboard language. Off by default; writes only the current user's Run value when explicitly toggled, starts in the tray at sign-in, and can be disabled again.

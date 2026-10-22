@@ -269,23 +269,26 @@ export class Store {
       )
       .all(to, from)
       .map((row) => ({ ...JSON.parse(row.detail), id: row.id }));
-    const processes = this.db
-      .prepare(
-        `SELECT CASE WHEN b.scope='unknown' THEN '' ELSE c.process END AS process,b.scope,
+    const processQuery = this.db.prepare(
+      `SELECT CASE WHEN b.scope='unknown' THEN '' ELSE c.process END AS process,b.scope,
         COUNT(DISTINCT CASE WHEN b.scope='unknown' THEN NULL ELSE c.pid END) AS pidCount,
         SUM(b.up) AS up,SUM(b.down) AS down,COUNT(DISTINCT c.id) AS connections,MAX(b.last_at) AS last_seen
         FROM buckets b JOIN connections c ON c.id=b.connection_id WHERE b.minute>=? AND b.minute<=?
-        GROUP BY 1,b.scope ORDER BY SUM(b.up+b.down) DESC LIMIT 20`,
-      )
-      .all(from, to)
-      .map((row) => ({
+        AND (?='all' OR b.scope=?)
+        GROUP BY 1,b.scope ORDER BY SUM(b.up+b.down) DESC,process,b.scope LIMIT ?`,
+    );
+    const processRows = (scope, limit) =>
+      processQuery.all(from, to, scope, scope, limit).map((row) => ({
         ...row,
         process: row.process.replaceAll('\\', '/').split('/').at(-1),
       }));
+    const processes = processRows('all', 20);
+    const codexProcesses = processRows('codex', 8);
     return {
       anomalies,
       gaps,
       processes,
+      codexProcesses,
       coverage: {
         ...coverage,
         ...measured,

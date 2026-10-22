@@ -1,6 +1,20 @@
 // Source-language keys keep the Chinese copy next to its English translation.
 // Values are plain text: never inject translations as HTML.
 export const messages = Object.freeze({
+  'Codex 进程流量排行': 'Codex traffic by process',
+  全部代理进程流量排行: 'All proxy traffic by process',
+  '仅显示已识别的 Codex 进程及子进程，按上传与下载合计排序，最多 8 项。':
+    'Identified Codex processes and children only, ranked by total transfer. Top 8 shown.',
+  '对照全部代理程序的用量；其他进程和待识别流量不会计入 Codex，最多 8 项。':
+    'Compare all proxied apps. Other and unidentified traffic is excluded from Codex totals. Top 8 shown.',
+  '所选范围暂无已识别的 Codex 进程流量。': 'No identified Codex process traffic in this range.',
+  排行统计范围: 'Process ranking scope',
+  仅Codex: 'Codex only',
+  '仅 Codex': 'Codex only',
+  全部代理进程: 'All proxied apps',
+  全部代理连接: 'All proxy connections',
+  '用于检查采集覆盖情况，包含其他程序，不是 Codex 专属用量。':
+    'Coverage reference for all proxied apps, not Codex-only usage.',
   开机自启: 'Start with Windows',
   自启开启: 'On',
   自启关闭: 'Off',

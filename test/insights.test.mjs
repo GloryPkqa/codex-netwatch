@@ -140,6 +140,29 @@ test('insights retain historical unknown attribution and bound result sets', (t)
   assert.ok(!JSON.stringify(result).includes('synthetic-session'));
 });
 
+test('Codex ranking is scoped before limiting even when unrelated apps dominate traffic', (t) => {
+  const { store } = setup(t);
+  for (let i = 0; i < 25; i++) {
+    const value = sample(61000 + i, 10000, 10000, 'other');
+    value.rows[0].key = `other-${i}`;
+    value.rows[0].process = `other-${i}.exe`;
+    store.record(value);
+  }
+  const codex = sample(62000, 10, 5);
+  codex.rows[0].key = 'codex-small';
+  store.record(codex);
+  const result = store.insights(60000, 119999);
+  assert.equal(result.processes.length, 20);
+  assert.equal(
+    result.processes.some((row) => row.scope === 'codex'),
+    false,
+  );
+  assert.equal(result.codexProcesses.length, 1);
+  assert.equal(result.codexProcesses[0].scope, 'codex');
+  assert.equal(result.codexProcesses[0].up, 10);
+  assert.equal(result.codexProcesses[0].down, 5);
+});
+
 test('repeated controller failures persist one open gap and recovery baselines offline bytes', async (t) => {
   const { store } = setup(t);
   const { monitor, tick } = controlledMonitor(t, store);

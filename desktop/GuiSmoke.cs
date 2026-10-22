@@ -32,6 +32,12 @@ internal static class NetwatchGuiSmoke
                 }
                 if (!loaded) throw new Exception("Dashboard data did not render in WebView2.");
                 if (failures.Count != 0) throw new Exception("WebView2 initialization failed.");
+                if (await window.Browser.CoreWebView2.ExecuteScriptAsync("document.querySelector('#processScope').value === 'codex' && !document.querySelector('#processRows').textContent.includes('browser.exe') && document.querySelector('#processRows').textContent.includes('codex.exe')") != "true")
+                    throw new Exception("Process ranking did not default to Codex only.");
+                await window.Browser.CoreWebView2.ExecuteScriptAsync("document.querySelector('#processScope').value='all'; document.querySelector('#processScope').dispatchEvent(new Event('change'))");
+                if (await window.Browser.CoreWebView2.ExecuteScriptAsync("document.querySelector('#processRows').textContent.includes('browser.exe')") != "true")
+                    throw new Exception("All-proxy process comparison did not show the other app.");
+                await window.Browser.CoreWebView2.ExecuteScriptAsync("document.querySelector('#processScope').value='codex'; document.querySelector('#processScope').dispatchEvent(new Event('change'))");
                 await window.Browser.CoreWebView2.ExecuteScriptAsync("document.querySelector('#settingsButton').click()");
                 deadline = DateTime.UtcNow.AddSeconds(5);
                 while (DateTime.UtcNow < deadline) {
@@ -50,6 +56,14 @@ internal static class NetwatchGuiSmoke
                 await Task.Delay(350);
                 if (await window.Browser.CoreWebView2.ExecuteScriptAsync("document.documentElement.lang") != "\"en\"")
                     throw new Exception("English language selection failed.");
+                if (await window.Browser.CoreWebView2.ExecuteScriptAsync("document.querySelector('#processTitle').textContent") != "\"Codex traffic by process\"")
+                    throw new Exception("Process ranking title did not follow the selected language.");
+                System.Drawing.Size originalSize = window.ClientSize;
+                window.ClientSize = new System.Drawing.Size(800, 700);
+                await Task.Delay(200);
+                if (await window.Browser.CoreWebView2.ExecuteScriptAsync("document.documentElement.scrollWidth <= window.innerWidth") != "true")
+                    throw new Exception("Narrow desktop layout overflowed the window.");
+                window.ClientSize = originalSize;
                 await window.Browser.CoreWebView2.ExecuteScriptAsync("document.querySelector('#language').value='zh-CN'; document.querySelector('#language').dispatchEvent(new Event('change'));");
                 await Task.Delay(350);
                 if (await window.Browser.CoreWebView2.ExecuteScriptAsync("document.documentElement.lang") != "\"zh-CN\"")
@@ -76,11 +90,13 @@ internal static class NetwatchGuiSmoke
                 window.ShowDashboard();
                 if (!window.Visible) throw new Exception("Window did not reopen.");
                 await window.Browser.CoreWebView2.ExecuteScriptAsync("document.querySelector('#toast')?.setAttribute('hidden',''); document.activeElement?.blur()");
-                await window.Browser.CoreWebView2.ExecuteScriptAsync("document.querySelector('#settingsButton').click()");
+                await window.Browser.CoreWebView2.ExecuteScriptAsync("window.scrollTo({top:document.querySelector('#investigation').offsetTop-110,behavior:'instant'})");
                 await Task.Delay(250);
+                if (await window.Browser.CoreWebView2.ExecuteScriptAsync("document.querySelector('.nav-link[aria-current]').getAttribute('href')") != "\"#investigation\"")
+                    throw new Exception("Sidebar selection did not follow scrolling.");
                 using (FileStream image = File.Create(args[3]))
                     await window.Browser.CoreWebView2.CapturePreviewAsync(CoreWebView2CapturePreviewImageFormat.Png, image);
-                File.WriteAllText(output, "{\"status\":\"passed\",\"checks\":[\"real WebView2 dashboard data\",\"startup button on and off (injected preference)\",\"English and Chinese switch\",\"external navigation isolation\",\"CSV download\",\"close to tray and reopen\"]}");
+                File.WriteAllText(output, "{\"status\":\"passed\",\"checks\":[\"real WebView2 dashboard data\",\"Codex-only default and all-proxy ranking switch\",\"sidebar follows scroll\",\"startup switch (injected preference)\",\"English and Chinese switch\",\"external navigation isolation\",\"CSV download\",\"close to tray and reopen\"]}");
                 Environment.ExitCode = 0;
             }
             catch (Exception error)

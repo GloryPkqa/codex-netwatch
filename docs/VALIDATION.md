@@ -2,6 +2,12 @@
 
 Validation recorded on 2026-10-22. These results describe the tested workload and host, not an accuracy guarantee for every proxy or Windows installation.
 
+## v0.2.3 scope and UI clarity
+
+- All 78 automated tests and syntax checks passed locally, including a case where 25 unrelated apps transfer more bytes than Codex. The separate Codex ranking still returns the smaller Codex process.
+- Real WebView2 GUI checks cover Codex-only defaults, switching to all-proxied-app comparison and back, bilingual ranking titles, scrolling sidebar selection, startup settings, CSV saving, and window reopening.
+- Codex-only rankings and proxy-wide coverage counters have separate, explicit labels. Measurement and attribution rules are unchanged. No 24-hour validation was resumed.
+
 ## v0.2.2 startup preference
 
 - The desktop GUI smoke also toggles the startup button on/off against an injected preference, without writing a real Windows startup value.
