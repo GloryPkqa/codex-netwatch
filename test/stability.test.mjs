@@ -60,13 +60,13 @@ test('synthetic workload includes short connections, individual and global count
 
 test(
   'real collector survives fixture outage and restart without counting bytes twice',
-  { timeout: 30000 },
+  { timeout: 60000 },
   async (t) => {
     const parent = fs.mkdtempSync(path.join(os.tmpdir(), 'codex-netwatch-stability-'));
     t.after(() => fs.rmSync(parent, { recursive: true, force: true }));
     const options = parseOptions([
       '--duration',
-      '5s',
+      '20s',
       '--connections',
       '12',
       '--interval',

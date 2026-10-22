@@ -16,9 +16,9 @@ One tray instance and one collector are allowed per data directory. Running the 
 
 ### 开机自启 / Start with Windows
 
-桌面窗口顶部的“开机自启：开启 / 关闭”按钮及托盘“开机自启”菜单可随时切换，默认关闭。开启后，在当前用户登录 Windows 时启动托盘采集，不弹出面板。它仅写入 `HKCU\Software\Microsoft\Windows\CurrentVersion\Run` 的 `CodexNetwatch` 值，内容为当前 EXE 路径加 `--no-browser`，不需要管理员权限。关闭时仅删除属于当前安装位置的值。移动便携目录前请先关闭自启，在新位置运行后再开启；直接删除目录不会自动清理注册项。
+桌面版“监控设置”中的“开机自启”开关及托盘同名菜单可随时切换，默认关闭，更改立即生效。开启后，在当前用户登录 Windows 时启动托盘采集，不弹出面板。它仅写入 `HKCU\Software\Microsoft\Windows\CurrentVersion\Run` 的 `CodexNetwatch` 值，内容为当前 EXE 路径加 `--no-browser`，不需要管理员权限。关闭时仅删除属于当前安装位置的值。移动便携目录前请先关闭自启，在新位置运行后再开启；直接删除目录不会自动清理注册项。
 
-The window's Start with Windows ON/OFF button and checked tray item control this optional preference. It is off by default. Enabling writes the current user's `CodexNetwatch` Run value with the quoted EXE path and `--no-browser`; Windows sign-in starts collection in the tray without opening the dashboard. Disabling removes only the value owned by this installation. No administrator permission is needed. Disable before moving the portable folder, then enable from its new location. Deleting the folder does not remove the Run value automatically.
+The desktop Monitor settings dialog's Start with Windows switch and checked tray item control this optional preference. It is off by default and changes apply immediately. Enabling writes the current user's `CodexNetwatch` Run value with the quoted EXE path and `--no-browser`; Windows sign-in starts collection in the tray without opening the dashboard. Disabling removes only the value owned by this installation. No administrator permission is needed. Disable before moving the portable folder, then enable from its new location. Deleting the folder does not remove the Run value automatically.
 
 ## 配置 / Configuration
 
@@ -50,7 +50,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts/package-windows.ps1
 
 构建器使用系统 .NET Framework 的 C# 编译器生成 WinForms 托盘。原生通知区域使用 [Microsoft NotifyIcon API](https://learn.microsoft.com/en-us/dotnet/api/system.windows.forms.notifyicon)；编译选项见 [Microsoft compiler output options](https://learn.microsoft.com/en-us/dotnet/csharp/language-reference/compiler-options/output)。
 
-The builder uses the Windows .NET Framework C# compiler and WinForms. The embedded GUI uses the [official Microsoft.Web.WebView2 SDK](https://www.nuget.org/packages/Microsoft.Web.WebView2/1.0.4258.31), pinned by version and SHA-256. Managed Core/WinForms bindings, the x64 loader, Microsoft's licenses and `webview2-manifest.json` are included. The [Evergreen Runtime](https://learn.microsoft.com/en-us/microsoft-edge/webview2/concepts/distribution) is installed and updated separately. Embedded navigation stays on the configured local origin, user-initiated HTTPS links open in the default browser, and no native host bridge is exposed.
+The builder uses the Windows .NET Framework C# compiler and WinForms. The embedded GUI uses the [official Microsoft.Web.WebView2 SDK](https://www.nuget.org/packages/Microsoft.Web.WebView2/1.0.4258.31), pinned by version and SHA-256. Managed Core/WinForms bindings, the x64 loader, Microsoft's licenses and `webview2-manifest.json` are included. The [Evergreen Runtime](https://learn.microsoft.com/en-us/microsoft-edge/webview2/concepts/distribution) is installed and updated separately. Embedded navigation stays on the configured local origin and user-initiated HTTPS links open in the default browser. No native host objects are exposed. A validated, local-origin-only message contract can read or toggle the startup preference; it cannot execute commands or access arbitrary files. Regular browser tabs have no native startup channel.
 
 The collector runtime is pinned to [official Node.js 24.22.1 Windows x64](https://nodejs.org/dist/v24.22.1/). Both its ZIP and `node.exe` SHA-256 values must match the [official checksum manifest](https://nodejs.org/dist/v24.22.1/SHASUMS256.txt) and pins in the build script. The build does not claim GPG signature verification.
 

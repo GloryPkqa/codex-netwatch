@@ -324,6 +324,26 @@
           <code>config.local.json</code> 中设置，修改后重启生效。接口密钥通过
           <code>MIHOMO_SECRET</code> 环境变量提供。
         </div>
+        <section id="desktopSettings" class="desktop-settings" hidden>
+          <div>
+            <strong id="startupLabel">开机自启</strong>
+            <p class="help">登录 Windows 后在托盘启动，不弹出面板。更改立即生效。</p>
+          </div>
+          <div class="startup-control">
+            <span id="startupState">自启关闭</span>
+            <button
+              id="startupToggle"
+              class="switch"
+              type="button"
+              role="switch"
+              aria-checked="false"
+              aria-labelledby="startupLabel"
+              disabled
+            >
+              <span></span>
+            </button>
+          </div>
+        </section>
         <div class="dialog-actions"><button class="button" type="submit">保存设置</button></div>
         <div class="diagnostic-export">
           <button id="diagnosticsButton" type="button" class="button secondary">

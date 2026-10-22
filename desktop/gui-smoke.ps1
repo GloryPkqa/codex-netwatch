@@ -12,7 +12,7 @@ foreach ($binding in @('Microsoft.Web.WebView2.Core.dll','Microsoft.Web.WebView2
 }
 $compiler = Join-Path $env:WINDIR 'Microsoft.NET\Framework64\v4.0.30319\csc.exe'
 $probe = Join-Path $testRoot 'GuiSmoke.exe'
-& $compiler /nologo /target:winexe /platform:x64 /codepage:65001 /reference:System.Windows.Forms.dll /reference:System.Drawing.dll /reference:System.dll /reference:System.Core.dll ("/reference:" + (Join-Path $testRoot 'Microsoft.Web.WebView2.Core.dll')) ("/reference:" + (Join-Path $testRoot 'Microsoft.Web.WebView2.WinForms.dll')) ("/out:" + $probe) (Join-Path $PSScriptRoot 'DashboardWindow.cs') (Join-Path $PSScriptRoot 'GuiSmoke.cs')
+& $compiler /nologo /target:winexe /platform:x64 /codepage:65001 /reference:System.Windows.Forms.dll /reference:System.Drawing.dll /reference:System.Web.Extensions.dll /reference:System.dll /reference:System.Core.dll ("/reference:" + (Join-Path $testRoot 'Microsoft.Web.WebView2.Core.dll')) ("/reference:" + (Join-Path $testRoot 'Microsoft.Web.WebView2.WinForms.dll')) ("/out:" + $probe) (Join-Path $PSScriptRoot 'DashboardWindow.cs') (Join-Path $PSScriptRoot 'GuiSmoke.cs')
 if ($LASTEXITCODE -ne 0) { throw 'GUI test compilation failed.' }
 $listener = New-Object System.Net.Sockets.TcpListener([Net.IPAddress]::Loopback,0)
 $listener.Start(); $port = $listener.LocalEndpoint.Port; $listener.Stop()

@@ -77,7 +77,7 @@ export function createServer(config, store, monitor, shutdown) {
     return insightCache.value;
   };
   const assets = new Map(
-    ['/', '/app.js', '/i18n.js', '/style.css', '/icon.svg'].map((route) => [
+    ['/', '/app.js', '/i18n.js', '/desktop.js', '/style.css', '/icon.svg'].map((route) => [
       route,
       path.join(config.root, 'public', route === '/' ? 'index.html' : route.slice(1)),
     ]),

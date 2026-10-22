@@ -422,6 +422,7 @@ export async function runStability(options, sourceRoot = root) {
   const launch = async () => {
     quiescing = false;
     oracle.reset();
+    const samplesBeforeLaunch = oracle.prefix.length - 1;
     monitorPort = await availablePort();
     const stdout = fs.openSync(path.join(workDir, 'collector.stdout.log'), 'a');
     const stderr = fs.openSync(path.join(workDir, 'collector.stderr.log'), 'a');
@@ -459,7 +460,7 @@ export async function runStability(options, sourceRoot = root) {
       if (spawnError || child.exitCode !== null) throw new Error('Collector exited during startup');
       try {
         const status = await jsonRequest(monitorPort, '/api/dashboard?range=all');
-        if (status.totals.samples > 0) return;
+        if (status.totals.samples > samplesBeforeLaunch) return;
       } catch {
         /* Bounded startup wait; fixture may be in a scheduled outage. */
       }

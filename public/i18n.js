@@ -1,6 +1,12 @@
 // Source-language keys keep the Chinese copy next to its English translation.
 // Values are plain text: never inject translations as HTML.
 export const messages = Object.freeze({
+  开机自启: 'Start with Windows',
+  自启开启: 'On',
+  自启关闭: 'Off',
+  '登录 Windows 后在托盘启动，不弹出面板。更改立即生效。':
+    'Start in the tray at Windows sign-in without opening the dashboard. Changes apply immediately.',
+  '无法更新开机自启，请重试。': 'Could not update startup preference. Please try again.',
   异常排查: 'Traffic investigation',
   '查看连接 ↘': 'Inspect connections ↘',
   'PID 未知': 'PID unavailable',

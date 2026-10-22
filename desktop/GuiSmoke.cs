@@ -32,10 +32,20 @@ internal static class NetwatchGuiSmoke
                 }
                 if (!loaded) throw new Exception("Dashboard data did not render in WebView2.");
                 if (failures.Count != 0) throw new Exception("WebView2 initialization failed.");
-                window.StartupButton.PerformClick();
-                if (!startupEnabled) throw new Exception("Startup button did not enable the preference.");
-                window.StartupButton.PerformClick();
-                if (startupEnabled) throw new Exception("Startup button did not disable the preference.");
+                await window.Browser.CoreWebView2.ExecuteScriptAsync("document.querySelector('#settingsButton').click()");
+                deadline = DateTime.UtcNow.AddSeconds(5);
+                while (DateTime.UtcNow < deadline) {
+                    if (await window.Browser.CoreWebView2.ExecuteScriptAsync("!document.querySelector('#desktopSettings').hidden && !document.querySelector('#startupToggle').disabled") == "true") break;
+                    await Task.Delay(100);
+                }
+                await window.Browser.CoreWebView2.ExecuteScriptAsync("document.querySelector('#startupToggle').click()");
+                await Task.Delay(250);
+                if (!startupEnabled || await window.Browser.CoreWebView2.ExecuteScriptAsync("document.querySelector('#startupToggle').getAttribute('aria-checked')") != "\"true\"")
+                    throw new Exception("Settings startup switch did not enable the preference.");
+                await window.Browser.CoreWebView2.ExecuteScriptAsync("document.querySelector('#startupToggle').click()");
+                await Task.Delay(250);
+                if (startupEnabled) throw new Exception("Settings startup switch did not disable the preference.");
+                await window.Browser.CoreWebView2.ExecuteScriptAsync("document.querySelector('#closeSettings').click()");
                 await window.Browser.CoreWebView2.ExecuteScriptAsync("document.querySelector('#language').value='en'; document.querySelector('#language').dispatchEvent(new Event('change'));");
                 await Task.Delay(350);
                 if (await window.Browser.CoreWebView2.ExecuteScriptAsync("document.documentElement.lang") != "\"en\"")
@@ -66,6 +76,7 @@ internal static class NetwatchGuiSmoke
                 window.ShowDashboard();
                 if (!window.Visible) throw new Exception("Window did not reopen.");
                 await window.Browser.CoreWebView2.ExecuteScriptAsync("document.querySelector('#toast')?.setAttribute('hidden',''); document.activeElement?.blur()");
+                await window.Browser.CoreWebView2.ExecuteScriptAsync("document.querySelector('#settingsButton').click()");
                 await Task.Delay(250);
                 using (FileStream image = File.Create(args[3]))
                     await window.Browser.CoreWebView2.CapturePreviewAsync(CoreWebView2CapturePreviewImageFormat.Png, image);

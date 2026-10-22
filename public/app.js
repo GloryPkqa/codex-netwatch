@@ -7,6 +7,7 @@ import {
   translateAlert,
   captureStaticTranslations,
 } from './i18n.js';
+import { createStartupBridge } from './desktop.js';
 const browserLanguages = navigator.languages || [navigator.language];
 const bootstrap = await fetch('/api/health', { signal: AbortSignal.timeout(1500) })
   .then((response) => (response.ok ? response.json() : null))
@@ -688,7 +689,47 @@ $('chart').addEventListener('mouseleave', () => {
   drawChart();
 });
 new ResizeObserver(() => drawChart()).observe($('chart'));
-$('settingsButton').addEventListener('click', () => $('settingsDialog').showModal());
+const startupBridge = createStartupBridge(window.chrome?.webview);
+let startupEnabled = false,
+  startupSequence = 0;
+function renderStartupState() {
+  $('startupState').textContent = t(startupEnabled ? '自启开启' : '自启关闭');
+  $('startupToggle').setAttribute('aria-checked', String(startupEnabled));
+}
+async function refreshStartup() {
+  if (!startupBridge) return;
+  const sequence = ++startupSequence;
+  $('startupToggle').disabled = true;
+  try {
+    const enabled = await startupBridge.get();
+    if (sequence !== startupSequence) return;
+    startupEnabled = enabled;
+    $('desktopSettings').hidden = false;
+    renderStartupState();
+    $('startupToggle').disabled = false;
+  } catch {
+    /* Unsupported desktop hosts leave this desktop-only setting hidden. */
+  }
+}
+$('startupToggle').addEventListener('click', async () => {
+  if (!startupBridge) return;
+  const sequence = ++startupSequence;
+  $('startupToggle').disabled = true;
+  try {
+    const enabled = await startupBridge.set(!startupEnabled);
+    if (sequence !== startupSequence) return;
+    startupEnabled = enabled;
+    renderStartupState();
+  } catch {
+    toast(t('无法更新开机自启，请重试。'));
+  } finally {
+    if (sequence === startupSequence) $('startupToggle').disabled = false;
+  }
+});
+$('settingsButton').addEventListener('click', () => {
+  $('settingsDialog').showModal();
+  refreshStartup();
+});
 $('closeSettings').addEventListener('click', () => $('settingsDialog').close());
 $('closeCorrelation').addEventListener('click', () => $('correlationDialog').close());
 $('correlationDialog').addEventListener('close', () => {
@@ -800,6 +841,7 @@ $('language').addEventListener('change', () => {
   language = resolveLanguage(preference, systemLocale ? [systemLocale] : browserLanguages);
   document.documentElement.lang = language;
   translateStatic(language);
+  renderStartupState();
   $('toast').hidden = true;
   $('chartHint').textContent = t('悬停查看采样值');
   if (latest) render(latest);

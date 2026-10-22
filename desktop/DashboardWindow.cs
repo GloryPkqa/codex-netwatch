@@ -5,11 +5,12 @@ using System.Globalization;
 using System.IO;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using System.Web.Script.Serialization;
 using Microsoft.Web.WebView2.Core;
 using Microsoft.Web.WebView2.WinForms;
 
 // The desktop and browser use the same local frontend and collector.
-// No native bridge, filesystem host object, or remote content is exposed to the page.
+// Only the local page can query/toggle startup through a narrow message contract.
 internal sealed class DashboardWindow : Form
 {
     private readonly Uri origin;
@@ -22,7 +23,6 @@ internal sealed class DashboardWindow : Form
     private readonly HashSet<ulong> blockedNavigations = new HashSet<ulong>();
     private readonly Func<bool> readStartup;
     private readonly Action<bool> writeStartup;
-    private Button startupButton;
     private readonly bool chinese = CultureInfo.CurrentUICulture.TwoLetterISOLanguageName == "zh";
 
     private string Local(string en, string zh) { return chinese ? zh : en; }
@@ -56,28 +56,6 @@ internal sealed class DashboardWindow : Form
         runtime.Click += delegate { openExternal("https://developer.microsoft.com/microsoft-edge/webview2/"); };
         actions.Controls.Add(retry); actions.Controls.Add(browser); actions.Controls.Add(runtime);
         fallback.Controls.Add(message); fallback.Controls.Add(actions); Controls.Add(fallback);
-        if (readStartup != null && writeStartup != null)
-        {
-            FlowLayoutPanel toolbar = new FlowLayoutPanel(); toolbar.Dock = DockStyle.Top; toolbar.Height = 44;
-            toolbar.BackColor = Color.FromArgb(22, 29, 31); toolbar.Padding = new Padding(10, 6, 10, 6);
-            startupButton = new Button(); startupButton.AutoSize = true; startupButton.FlatStyle = FlatStyle.Flat;
-            startupButton.ForeColor = Color.FromArgb(209, 250, 228); startupButton.BackColor = Color.FromArgb(34, 51, 43);
-            startupButton.AccessibleName = Local("Start with Windows", "开机自启");
-            startupButton.Click += delegate {
-                try { writeStartup(!readStartup()); RefreshStartup(); }
-                catch (Exception error) {
-                    reportFailure(error.Message);
-                    MessageBox.Show(this, Local("Could not save startup preference.", "无法保存开机自启设置。") + "\n" + error.Message,
-                        "Codex Netwatch", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                }
-            };
-            Label hint = new Label(); hint.AutoSize = true; hint.Margin = new Padding(12, 8, 0, 0);
-            hint.ForeColor = Color.FromArgb(157, 177, 173);
-            hint.Text = Local("Close the window to continue in the tray", "关闭窗口后继续在托盘采集");
-            toolbar.Controls.Add(startupButton); toolbar.Controls.Add(hint); Controls.Add(toolbar);
-            Activated += delegate { RefreshStartup(); };
-            RefreshStartup();
-        }
         Shown += async delegate { await InitializeDashboard(); };
         FormClosing += delegate(object sender, FormClosingEventArgs args) {
             if (args.CloseReason == CloseReason.UserClosing) { args.Cancel = true; Hide(); }
@@ -99,16 +77,6 @@ internal sealed class DashboardWindow : Form
         if (WindowState == FormWindowState.Minimized) WindowState = FormWindowState.Normal;
         Activate();
     }
-    private void RefreshStartup()
-    {
-        if (startupButton == null) return;
-        try {
-            startupButton.Text = readStartup() ? Local("Start with Windows: ON", "开机自启：开启") : Local("Start with Windows: OFF", "开机自启：关闭");
-        } catch {
-            startupButton.Text = Local("Startup unavailable", "无法读取自启设置"); startupButton.Enabled = false;
-        }
-    }
-    internal Button StartupButton { get { return startupButton; } }
     internal bool IsLocal(string address)
     {
         Uri uri;
@@ -145,12 +113,35 @@ internal sealed class DashboardWindow : Form
             if (IsDisposed) return;
             CoreWebView2 core = view.CoreWebView2;
             core.Settings.AreHostObjectsAllowed = false;
-            core.Settings.IsWebMessageEnabled = false;
+            core.Settings.IsWebMessageEnabled = true;
             core.Settings.IsStatusBarEnabled = false;
             core.Settings.AreDefaultContextMenusEnabled = false;
             core.Settings.AreDevToolsEnabled = false;
             core.Settings.IsPasswordAutosaveEnabled = false;
             core.Settings.IsGeneralAutofillEnabled = false;
+            core.WebMessageReceived += delegate(object sender, CoreWebView2WebMessageReceivedEventArgs args) {
+                if (!IsLocal(args.Source) || readStartup == null || writeStartup == null) return;
+                string json = args.WebMessageAsJson;
+                if (json.Length > 1024) return;
+                JavaScriptSerializer serializer = new JavaScriptSerializer();
+                string requestId = null;
+                try {
+                    Dictionary<string, object> request = serializer.Deserialize<Dictionary<string, object>>(json);
+                    object type, id, action, enabled;
+                    if (request == null || !request.TryGetValue("type", out type) || !Object.Equals(type, "netwatch:startup")
+                        || !request.TryGetValue("id", out id) || !(id is string) || ((string)id).Length > 40
+                        || !request.TryGetValue("action", out action) || !(action is string)) return;
+                    requestId = (string)id;
+                    if ((string)action == "set") {
+                        if (!request.TryGetValue("enabled", out enabled) || !(enabled is bool)) return;
+                        writeStartup((bool)enabled);
+                    } else if ((string)action != "get") return;
+                    core.PostWebMessageAsJson(serializer.Serialize(new { type="netwatch:startup:result", id=requestId, ok=true, enabled=readStartup() }));
+                } catch (Exception error) {
+                    reportFailure("Startup preference: " + error.Message);
+                    if (requestId != null) core.PostWebMessageAsJson(serializer.Serialize(new { type="netwatch:startup:result", id=requestId, ok=false }));
+                }
+            };
             core.NavigationStarting += delegate(object sender, CoreWebView2NavigationStartingEventArgs args) {
                 if (!IsLocal(args.Uri)) {
                     args.Cancel = true; blockedNavigations.Add(args.NavigationId);

@@ -707,6 +707,8 @@ dialog {
   border-radius: 14px;
   padding: 26px;
   width: min(520px, calc(100vw - 30px));
+  max-height: calc(100dvh - 40px);
+  overflow-y: auto;
   box-shadow: 0 20px 100px #0008;
 }
 dialog::backdrop {
@@ -759,6 +761,67 @@ code {
   display: flex;
   justify-content: flex-end;
   margin-top: 20px;
+}
+.desktop-settings {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 22px;
+  margin-top: 22px;
+  padding-top: 20px;
+  border-top: 1px solid #36463b;
+}
+.desktop-settings[hidden] {
+  display: none;
+}
+.desktop-settings strong {
+  font-size: 12px;
+  font-weight: 500;
+}
+.desktop-settings .help {
+  margin: 7px 0 0;
+  line-height: 1.7;
+}
+.startup-control {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-shrink: 0;
+  font-size: 11px;
+  color: var(--muted);
+}
+.switch {
+  width: 40px;
+  height: 23px;
+  padding: 3px;
+  background: #344139;
+  border: 1px solid #53675a;
+  border-radius: 20px;
+  cursor: pointer;
+}
+.switch span {
+  display: block;
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  background: #c0cdc4;
+  transition: transform 0.15s;
+}
+.switch[aria-checked='true'] {
+  background: #a3edc0;
+  border-color: #a3edc0;
+}
+.switch[aria-checked='true'] span {
+  transform: translateX(16px);
+  background: #173324;
+}
+.switch:focus-visible {
+  outline: 2px solid #a3edc0;
+  outline-offset: 4px;
+}
+.switch:disabled {
+  opacity: 0.45;
+  cursor: wait;
 }
 .stop-section {
   border-top: 1px solid #36463b;
