@@ -49,6 +49,12 @@ test('local server enforces Host, Origin and custom client header; settings pers
   });
   const url = `http://127.0.0.1:${server.address().port}`;
   assert.equal((await fetch(`${url}/api/health`)).status, 200);
+  const health = await (await fetch(`${url}/api/health`)).json();
+  assert.equal(
+    health.version,
+    JSON.parse(fs.readFileSync(new URL('../package.json', import.meta.url))).version,
+  );
+  assert.equal(typeof health.systemLocale, 'string');
   assert.equal((await fetch(`${url}/api/dashboard`)).status, 403);
   const h = { 'X-Codex-Flow': '1' };
   assert.equal((await fetch(`${url}/api/dashboard`, { headers: h })).status, 200);
@@ -85,6 +91,11 @@ test('local server enforces Host, Origin and custom client header; settings pers
   );
   const body = await (await fetch(`${url}/`)).text();
   assert.match(body, /Codex Netwatch/);
+  assert.match(body, /type="module"/);
+  const translations = await fetch(`${url}/i18n.js`);
+  assert.equal(translations.status, 200);
+  assert.match(translations.headers.get('content-type'), /javascript/);
+  assert.match(await translations.text(), /captureStaticTranslations/);
   assert.equal((await fetch(`${url}/missing`)).status, 404);
   const status = await new Promise((resolve, reject) => {
     http

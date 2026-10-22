@@ -6,7 +6,7 @@
 
 项目仓库：[GloryPkqa/codex-netwatch](https://github.com/GloryPkqa/codex-netwatch) · [预发布版本](https://github.com/GloryPkqa/codex-netwatch/releases)
 
-> 当前版本：0.1.0。Windows 优先，独立于 Codex 运行，不是 OpenAI 官方工具。不调用 OpenAI API，不需要 API Key，不修改代理规则，不解密 HTTPS。
+> 当前版本：0.1.1。Windows 优先，独立于 Codex 运行，不是 OpenAI 官方工具。不调用 OpenAI API，不需要 API Key，不修改代理规则，不解密 HTTPS。
 
 ![仅使用合成数据的界面预览](docs/preview.png)
 
@@ -45,6 +45,8 @@ Mihomo `/connections` 是活动连接快照。采样间隔内建立又关闭的�
 4. 关闭网页后后台继续采集；在页面 **设置 → 停止监控** 退出。
 
 启动脚本优先使用 PATH 中的 Node，也兼容已有的 Codex 本地 Node 运行时。第一次运行会生成 `data/`。再次双击会打开已运行的实例，不重复启动。没有配置开机自启。
+
+右上角支持 **中文 / English / 自动（系统）**。默认自动识别：中文系统使用简体中文，其他语言使用英文。Windows 在启动时读取显示语言；读取受限时使用运行时语言，无法取得本地接口时再回退浏览器首选语言。手动选择会保存在当前浏览器中，选择「自动（系统）」可恢复自动识别。切换即时生效，不重启采集、不清空筛选，也不翻译真实会话标题等原始数据。页脚 **@GloryPkqa** 直接打开项目仓库。
 
 也可以在终端运行：
 

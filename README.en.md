@@ -6,7 +6,7 @@ Local-first network observability for Codex. Uses **Mihomo connection counters**
 
 [GitHub repository](https://github.com/GloryPkqa/codex-netwatch) · [Releases](https://github.com/GloryPkqa/codex-netwatch/releases)
 
-![Synthetic demo screenshot; no user data](docs/preview.png)
+![Synthetic demo screenshot; no user data](docs/preview.en.png)
 
 ## Quick start
 
@@ -14,8 +14,10 @@ Requires Windows 10/11, Node.js **24+**, and a running Mihomo/Clash Verge Rev in
 
 - Double-click `start.cmd`, or run `npm start`.
 - Dashboard: `http://127.0.0.1:43128`.
-- Closing the page leaves collection running. Use **Settings → Stop monitoring** (界面：设置 → 停止监控), or Ctrl+C for a terminal instance.
-- `start-demo.cmd` uses synthetic data on port 43129 and a separate database. The dashboard is currently Chinese.
+- Closing the page leaves collection running. Use **Settings → Stop monitor**, or Ctrl+C for a terminal instance.
+- `start-demo.cmd` uses synthetic data on port 43129 and a separate database.
+- The dashboard supports **English / 中文**. The top-right language selector defaults to **Auto (system)**: Chinese system languages use Simplified Chinese, all others use English. Windows reads the display language once at startup; if unavailable, the runtime locale is used. If the local language endpoint is unavailable, the browser's preferred language is the fallback. A manual selection is remembered in this browser; select Auto to follow the system again. Switching does not restart collection or clear filters.
+- The footer's **@GloryPkqa** link opens this project's GitHub repository.
 - `npm run doctor` prints a sanitised connectivity/process-matching report.
 
 ## Honest accounting

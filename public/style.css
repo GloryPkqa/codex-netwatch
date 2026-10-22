@@ -162,6 +162,20 @@ main {
   align-items: center;
   gap: 18px;
 }
+.language-select {
+  min-height: 32px;
+  padding: 5px 22px 5px 9px;
+  font-size: 11px;
+}
+.project-link {
+  display: inline-block;
+  color: var(--mint);
+  margin-left: 12px;
+  letter-spacing: 0;
+}
+.project-link:hover {
+  text-decoration: underline;
+}
 .status-pill {
   display: inline-flex;
   gap: 8px;
@@ -224,6 +238,7 @@ p {
   gap: 9px;
   align-items: center;
   padding-bottom: 4px;
+  flex-shrink: 0;
 }
 select,
 input {
@@ -303,6 +318,7 @@ input::placeholder {
 }
 .metric-label {
   display: flex;
+  flex-wrap: wrap;
   justify-content: space-between;
   align-items: center;
   font-size: 11px;
@@ -930,6 +946,16 @@ code {
   }
 }
 @media (max-width: 540px) {
+  .topbar {
+    height: auto;
+    min-height: 74px;
+    padding: 12px 0;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .top-actions {
+    flex-wrap: wrap;
+  }
   .page-heading {
     flex-direction: column;
     gap: 20px;

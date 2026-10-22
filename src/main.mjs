@@ -5,6 +5,7 @@ import { Store } from './store.mjs';
 import { Monitor } from './monitor.mjs';
 import { createServer } from './server.mjs';
 import { acquireInstance } from './instance.mjs';
+import { detectSystemLocale } from './locale.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 let config;
@@ -37,6 +38,7 @@ function shutdown() {
   server.closeIdleConnections();
   setTimeout(() => process.exit(0), 3000).unref();
 }
+config.systemLocale = detectSystemLocale();
 const server = createServer(config, store, monitor, shutdown);
 server.on('error', (error) => {
   console.error(

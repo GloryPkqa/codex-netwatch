@@ -68,7 +68,7 @@ function readBody(req, limit = 4096) {
 }
 export function createServer(config, store, monitor, shutdown) {
   const assets = new Map(
-    ['/', '/app.js', '/style.css', '/icon.svg'].map((route) => [
+    ['/', '/app.js', '/i18n.js', '/style.css', '/icon.svg'].map((route) => [
       route,
       path.join(config.root, 'public', route === '/' ? 'index.html' : route.slice(1)),
     ]),
@@ -96,7 +96,8 @@ export function createServer(config, store, monitor, shutdown) {
       if (url.pathname === '/api/health' && req.method === 'GET')
         return json(200, {
           app: 'codex-flow',
-          version: '0.1.0',
+          version: '0.1.1',
+          systemLocale: config.systemLocale || Intl.DateTimeFormat().resolvedOptions().locale,
           state: monitor.state,
           demo: config.demo,
         });
