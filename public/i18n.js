@@ -318,7 +318,7 @@ export function readLanguagePreference(storage) {
   } catch {
     /* Private mode. */
   }
-  return saved === 'en' || saved === 'zh-CN' ? saved : 'auto';
+  return saved === 'en' || saved === 'zh-CN' || saved === 'auto' ? saved : 'en';
 }
 
 export function readLanguage(storage, languages, systemLocale) {

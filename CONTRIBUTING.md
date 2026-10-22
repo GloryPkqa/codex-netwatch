@@ -1,6 +1,6 @@
 # Contributing
 
-Node.js 24+ is required. There are no third-party dependencies to install.
+Node.js 24+ is required. The collector and dashboard have no JavaScript packages to install. Building the Windows desktop host additionally uses the pinned Microsoft WebView2 SDK; see [portable build details](docs/WINDOWS_PORTABLE.md).
 
 ```sh
 npm run check
@@ -29,7 +29,9 @@ Use `start-demo.cmd` on Windows to avoid a running real monitor's port. Demo and
 4. Do not allocate shared process bytes to sessions without explicit, verifiable identity evidence. Activity-only associations must stay labelled.
 5. Do not add remote assets, analytics, arbitrary-controller fetches, packet decryption, or broad process-name substring matching.
 6. Keep credentials and local fixtures out of commits and screenshots. Use the demo for public screenshots.
-7. Before schema changes, add a versioned migration and test new databases and upgrades from supported versions. The current schema is version 2 with a tested migration from version 1. Preserve data; do not drop/recreate user databases.
+7. Before schema changes, add a versioned migration and test new databases and upgrades from supported versions. The current schema is version 3, with migrations preserving earlier data. Do not drop/recreate user databases.
+
+Keep the primary [English README](README.md) and [Chinese README](README.zh-CN.md) aligned. Dashboard copy must support English and Chinese; new installs default to English, while explicit language choices remain unchanged. Publish screenshots only from synthetic demo data.
 
 CI checks JavaScript syntax and deterministic tests on Windows and Linux. Windows owner-table collection and UI layout should also be checked manually when those modules change. Do not claim CI validates a real user's Mihomo installation.
 

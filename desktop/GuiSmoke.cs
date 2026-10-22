@@ -33,6 +33,8 @@ internal static class NetwatchGuiSmoke
                 }
                 if (!loaded) throw new Exception("Dashboard data did not render in WebView2.");
                 if (failures.Count != 0) throw new Exception("WebView2 initialization failed.");
+                if (await window.Browser.CoreWebView2.ExecuteScriptAsync("document.documentElement.lang === 'en' && document.querySelector('#language').value === 'en'") != "true")
+                    throw new Exception("A fresh desktop profile did not default to English.");
                 if (await window.Browser.CoreWebView2.ExecuteScriptAsync("document.querySelector('.version-link')?.href === 'https://github.com/GloryPkqa/codex-netwatch' && document.querySelector('.version-link').textContent.includes('codex-netwatch')") != "true")
                     throw new Exception("Sidebar project link is missing or points to the wrong repository.");
                 if (await window.Browser.CoreWebView2.ExecuteScriptAsync("document.querySelector('#processScope').value === 'codex' && !document.querySelector('#processRows').textContent.includes('browser.exe') && document.querySelector('#processRows').textContent.includes('codex.exe')") != "true")
@@ -111,11 +113,17 @@ internal static class NetwatchGuiSmoke
                 window.ShowDashboard();
                 if (!window.Visible) throw new Exception("Window did not reopen.");
                 await window.Browser.CoreWebView2.ExecuteScriptAsync("document.querySelector('#toast')?.setAttribute('hidden',''); document.activeElement?.blur()");
+                if (args.Length > 4 && args[4] == "en")
+                    await window.Browser.CoreWebView2.ExecuteScriptAsync("document.querySelector('#language').value='en'; document.querySelector('#language').dispatchEvent(new Event('change'));");
                 await window.Browser.CoreWebView2.ExecuteScriptAsync("window.scrollTo({top:document.querySelector('#investigation').offsetTop-110,behavior:'instant'})");
                 await Task.Delay(250);
                 if (await window.Browser.CoreWebView2.ExecuteScriptAsync("document.querySelector('.nav-link[aria-current]').getAttribute('href')") != "\"#investigation\"")
                     throw new Exception("Sidebar selection did not follow scrolling.");
                 using (FileStream image = File.Create(args[3]))
+                    await window.Browser.CoreWebView2.CapturePreviewAsync(CoreWebView2CapturePreviewImageFormat.Png, image);
+                await window.Browser.CoreWebView2.ExecuteScriptAsync("window.scrollTo({top:0,behavior:'instant'})");
+                await Task.Delay(200);
+                using (FileStream image = File.Create(Path.ChangeExtension(args[3], ".overview.png")))
                     await window.Browser.CoreWebView2.CapturePreviewAsync(CoreWebView2CapturePreviewImageFormat.Png, image);
                 File.WriteAllText(output, "{\"status\":\"passed\",\"checks\":[\"real WebView2 dashboard data\",\"Codex-only default and all-proxy ranking switch\",\"sidebar follows scroll\",\"startup switch (injected preference)\",\"English and Chinese switch\",\"external navigation isolation\",\"CSV download\",\"close to tray and reopen\"]}");
                 Environment.ExitCode = 0;

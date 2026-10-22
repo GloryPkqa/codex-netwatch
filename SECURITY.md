@@ -17,7 +17,7 @@ These measures are defense in depth. A malicious local program with the same use
 
 `data/` contains SQLite, logs, session titles/IDs, activity times, destinations, process IDs, and counts. `config.local.json` can contain private paths. CSV and real screenshots can reveal activity. Do not commit or upload them. Retention deletes expired network records and alerts but does not securely erase SQLite free pages, backups, WAL history, or cached session metadata. To remove all monitor data, stop the app and remove its dedicated data directory yourself after verifying its path.
 
-Diagnostic JSON exports use a fresh allowlist and omit connection/session identities, secrets, paths and logs. Runtime versions and aggregate usage remain, so review before sharing. The portable package includes verified official Node binaries and their third-party notices. It is currently unsigned and does not install auto-start or modify the system proxy.
+Diagnostic JSON exports use a fresh allowlist and omit connection/session identities, secrets, paths and logs. Runtime versions and aggregate usage remain, so review before sharing. The portable package includes verified official Node binaries and Microsoft WebView2 bindings with their third-party notices. It is currently unsigned. Startup at sign-in is off by default and writes the current user's Run value only when explicitly enabled in settings or the tray. It does not modify the system proxy.
 
 The source packager uses an explicit allowlist; `.gitignore` is not the sole data-exclusion mechanism. Release screenshots must use demo data. Before publication, review staged files and archive contents.
 

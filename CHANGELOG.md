@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.2.5 — 2026-10-22
+
+- Make English the default dashboard language for new profiles, keeping Chinese and explicit Auto (system) in the existing language menu and preserving saved choices.
+- Apply the preferred language before waiting for local health discovery.
+- Make the primary README English, provide a concise Chinese translation, and keep a compatibility link at the former English README path.
+- Streamline installation, configuration, measurement limits and privacy documentation; remove the project comparison page and unused screenshots.
+- Refresh English screenshots with synthetic desktop data and align portable/source packages with the new documentation layout.
+
 ## 0.2.4 — 2026-10-22
 
 - Replace the sidebar's technical adapter label with a `codex-netwatch` link to the public project repository.

@@ -47,7 +47,7 @@ test('language storage uses a stable key and remains optional when browser stora
       throw new Error('Storage access denied');
     },
   };
-  assert.equal(readLanguage(denied, ['zh-TW']), 'zh-CN');
+  assert.equal(readLanguage(denied, ['zh-TW']), 'en');
   assert.doesNotThrow(() => saveLanguage(denied, 'en'));
   assert.equal(readLanguage(undefined, ['en-US']), 'en');
   assert.doesNotThrow(() => saveLanguage(undefined, 'zh-CN'));
@@ -55,29 +55,31 @@ test('language storage uses a stable key and remains optional when browser stora
 
 test('automatic language uses the host system and explicit choices override it', () => {
   const storage = (value) => ({ getItem: () => value });
-  assert.equal(readLanguage(storage(null), ['en-US'], 'zh-CN'), 'zh-CN');
+  assert.equal(readLanguage(storage(null), ['en-US'], 'zh-CN'), 'en');
   assert.equal(readLanguage(storage('auto'), ['zh-CN'], 'en-GB'), 'en');
-  assert.equal(readLanguage(storage('invalid'), ['en-US'], 'zh-TW'), 'zh-CN');
+  assert.equal(readLanguage(storage('invalid'), ['en-US'], 'zh-TW'), 'en');
+  assert.equal(readLanguage(storage('auto'), ['en-US'], 'zh-TW'), 'zh-CN');
   assert.equal(readLanguage(storage('en'), ['zh-CN'], 'zh-CN'), 'en');
   assert.equal(readLanguage(storage('zh-CN'), ['en-US'], 'en-US'), 'zh-CN');
-  assert.equal(readLanguage(storage(null), ['zh-TW']), 'zh-CN');
+  assert.equal(readLanguage(storage(null), ['zh-TW']), 'en');
   assert.equal(readLanguage(storage(null), ['en-US']), 'en');
 });
 
-test('the stored preference exposes auto for missing, unsupported, or inaccessible storage', () => {
-  for (const value of [null, undefined, '', 'auto', 'invalid', 'fr-FR']) {
-    assert.equal(readLanguagePreference({ getItem: () => value }), 'auto');
+test('new or inaccessible preferences default to English while explicit auto remains available', () => {
+  for (const value of [null, undefined, '', 'invalid', 'fr-FR']) {
+    assert.equal(readLanguagePreference({ getItem: () => value }), 'en');
   }
+  assert.equal(readLanguagePreference({ getItem: () => 'auto' }), 'auto');
   assert.equal(readLanguagePreference({ getItem: () => 'en' }), 'en');
   assert.equal(readLanguagePreference({ getItem: () => 'zh-CN' }), 'zh-CN');
-  assert.equal(readLanguagePreference(undefined), 'auto');
+  assert.equal(readLanguagePreference(undefined), 'en');
   assert.equal(
     readLanguagePreference({
       getItem() {
         throw new Error('Storage denied');
       },
     }),
-    'auto',
+    'en',
   );
 });
 

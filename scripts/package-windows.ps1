@@ -76,7 +76,7 @@ $manifest = [ordered]@{
 }
 $manifest | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $runtime 'runtime-manifest.json') -Encoding UTF8
 # Allowlist only. Never copy local config, databases, logs, credentials, or build caches.
-foreach ($item in @('src','public','docs','LICENSE','package.json','config.example.json','README.md','README.en.md','SECURITY.md','CHANGELOG.md')) {
+foreach ($item in @('src','public','docs','LICENSE','package.json','config.example.json','README.md','README.zh-CN.md','README.en.md','SECURITY.md','CHANGELOG.md')) {
   Copy-Item -LiteralPath (Join-Path $projectRoot $item) -Destination $stage -Recurse
 }
 New-Item -ItemType Directory -Path (Join-Path $stage 'scripts') -Force | Out-Null

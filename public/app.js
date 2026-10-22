@@ -9,14 +9,9 @@ import {
 } from './i18n.js';
 import { createStartupBridge } from './desktop.js';
 const browserLanguages = navigator.languages || [navigator.language];
-const bootstrap = await fetch('/api/health', { signal: AbortSignal.timeout(1500) })
-  .then((response) => (response.ok ? response.json() : null))
-  .catch(() => null);
-const systemLocale = typeof bootstrap?.systemLocale === 'string' ? bootstrap.systemLocale : null;
-let desktopInstance = /^[a-f0-9]{32,128}$/i.test(bootstrap?.desktopInstance || '')
-  ? bootstrap.desktopInstance
-  : '';
-let language = readLanguage(safeStorage(), browserLanguages, systemLocale);
+let systemLocale = null,
+  desktopInstance = '';
+let language = readLanguage(safeStorage(), browserLanguages);
 const t = (message, values) => translate(message, language, values);
 const locale = () => (language === 'en' ? 'en-US' : 'zh-CN');
 function safeStorage() {
@@ -27,6 +22,18 @@ function safeStorage() {
   }
 }
 const translateStatic = captureStaticTranslations(document.documentElement);
+translateStatic(language);
+document.documentElement.lang = language;
+document.getElementById('language').value = readLanguagePreference(safeStorage());
+// Render the preferred language before waiting for local health/locale discovery.
+const bootstrap = await fetch('/api/health', { signal: AbortSignal.timeout(1500) })
+  .then((response) => (response.ok ? response.json() : null))
+  .catch(() => null);
+systemLocale = typeof bootstrap?.systemLocale === 'string' ? bootstrap.systemLocale : null;
+desktopInstance = /^[a-f0-9]{32,128}$/i.test(bootstrap?.desktopInstance || '')
+  ? bootstrap.desktopInstance
+  : '';
+language = readLanguage(safeStorage(), browserLanguages, systemLocale);
 translateStatic(language);
 document.documentElement.lang = language;
 const $ = (id) => document.getElementById(id);

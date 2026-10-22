@@ -2,6 +2,13 @@
 
 Validation recorded on 2026-10-22. These results describe the tested workload and host, not an accuracy guarantee for every proxy or Windows installation.
 
+## v0.2.5 English-first defaults and documentation
+
+- All 80 automated tests and syntax checks passed locally. Language tests verify English defaults with absent, invalid or inaccessible preferences, preserve explicit Chinese/English choices, and retain opt-in system detection.
+- A fresh WebView2 profile defaulted to English on the test host. The GUI smoke also verified switching to Chinese in the existing menu, narrow-window layout, startup-state recovery, downloads and navigation.
+- English overview/investigation screenshots use isolated synthetic data. Local documentation links were checked; source and portable packages include the primary English README and Chinese translation.
+- No 24-hour validation was resumed; prior scope and measurement limits still apply.
+
 ## v0.2.4 review fixes
 
 - Regression tests cover rejecting socket evidence timestamped after the current clock, retaining independent proxy identity, accepting fresh replacement evidence, and resuming threshold alerts after a backwards clock change.

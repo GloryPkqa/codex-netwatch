@@ -1,4 +1,4 @@
-param([string]$PortableRoot, [string]$Screenshot)
+param([string]$PortableRoot, [string]$Screenshot, [ValidateSet('en','zh-CN')][string]$Language = 'en')
 $ErrorActionPreference = 'Stop'
 $projectRoot = Split-Path -Parent $PSScriptRoot
 if (!$PortableRoot) { $PortableRoot = Join-Path $projectRoot 'data\windows-package-stage\codex-netwatch' }
@@ -30,7 +30,7 @@ try {
     if (!$ready) { throw 'Synthetic desktop collector not ready.' }
     $report = Join-Path $testRoot 'report.json'
     $profile = Join-Path $testRoot 'profile'
-    $probeProcess = Start-Process -FilePath $probe -ArgumentList @("`"http://127.0.0.1:$port`"", "`"$profile`"", "`"$report`"", "`"$Screenshot`"") -WindowStyle Hidden -PassThru
+    $probeProcess = Start-Process -FilePath $probe -ArgumentList @("`"http://127.0.0.1:$port`"", "`"$profile`"", "`"$report`"", "`"$Screenshot`"", $Language) -WindowStyle Hidden -PassThru
     if (!$probeProcess.WaitForExit(45000)) { $probeProcess.Kill(); throw 'GUI smoke timeout.' }
     Get-Content -LiteralPath $report
     if ($probeProcess.ExitCode -ne 0) { throw 'GUI smoke failed.' }
