@@ -6,8 +6,6 @@ A local dashboard for Codex network usage, process attribution, and session acti
 
 ![Codex Netwatch showing recorded traffic, an hour of history and destinations](docs/overview.en.png)
 
-_Actual usage example shared by the maintainer (v0.2.5). Values depend on activity and capture scope; “All proxy traffic” includes other apps._
-
 **Windows first. Requires a running Mihomo / Clash-compatible controller.** It measures observed proxy traffic, including identified Codex child processes. It cannot see traffic bypassing that controller or precisely split shared connections between chats.
 
 ## Features
