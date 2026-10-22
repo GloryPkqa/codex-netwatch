@@ -1,6 +1,8 @@
 import http from 'node:http';
 import fs from 'node:fs';
 import path from 'node:path';
+import { VERSION } from './version.mjs';
+import { createDiagnostics } from './diagnostics.mjs';
 
 export function parseRange(url, now, firstAt) {
   const ranges = {
@@ -67,6 +69,13 @@ function readBody(req, limit = 4096) {
   });
 }
 export function createServer(config, store, monitor, shutdown) {
+  let insightCache = null;
+  const insights = (range) => {
+    const key = `${Math.floor(range.from / 60000)}:${Math.floor(range.to / 60000)}`;
+    if (!insightCache || insightCache.key !== key || Date.now() - insightCache.at >= 10000)
+      insightCache = { key, at: Date.now(), value: store.insights?.(range.from, range.to) || null };
+    return insightCache.value;
+  };
   const assets = new Map(
     ['/', '/app.js', '/i18n.js', '/style.css', '/icon.svg'].map((route) => [
       route,
@@ -96,7 +105,8 @@ export function createServer(config, store, monitor, shutdown) {
       if (url.pathname === '/api/health' && req.method === 'GET')
         return json(200, {
           app: 'codex-flow',
-          version: '0.1.1',
+          version: VERSION,
+          ...(config.desktopToken ? { desktopInstance: config.desktopToken } : {}),
           systemLocale: config.systemLocale || Intl.DateTimeFormat().resolvedOptions().locale,
           state: monitor.state,
           demo: config.demo,
@@ -114,6 +124,8 @@ export function createServer(config, store, monitor, shutdown) {
             return json(200, { ok: true });
           }
           if (url.pathname === '/api/stop') {
+            if (config.desktopToken && req.headers['x-codex-desktop-token'] !== config.desktopToken)
+              return json(403, { error: 'Desktop instance marker required' });
             json(200, { ok: true });
             setTimeout(shutdown, 100);
             return;
@@ -121,6 +133,13 @@ export function createServer(config, store, monitor, shutdown) {
           return json(404, { error: 'Not found' });
         }
         if (req.method !== 'GET') return json(405, { error: 'Method not allowed' });
+        if (url.pathname === '/api/diagnostics') {
+          res.setHeader(
+            'Content-Disposition',
+            'attachment; filename="codex-netwatch-diagnostics.json"',
+          );
+          return json(200, createDiagnostics(config, store, monitor));
+        }
         const range = parseRange(url, Date.now(), store.firstAt());
         const scope = ['codex', 'unknown', 'other', 'all'].includes(url.searchParams.get('scope'))
           ? url.searchParams.get('scope')
@@ -135,6 +154,7 @@ export function createServer(config, store, monitor, shutdown) {
             domains: store.domains(range.from, range.to, scope),
             sessions: store.sessions(),
             alerts: store.alerts(),
+            insights: insights(range),
           });
         }
         if (url.pathname === '/api/correlation') {

@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.2.0 — 2026-10-22
+
+- Persist upload/download bursts and sustained uploads with measured contributor context, cooldowns and process totals.
+- Record collection gaps across restarts, outages, source changes, long sampling delays, observer failures and clock changes; recovery establishes a new baseline.
+- Add bilingual investigation panels, scoped connection drill-down and collector resource diagnostics.
+- Add allowlisted, redacted diagnostic JSON export and test privacy with seeded identity/credential canaries.
+- Add Windows x64 portable tray EXE with a checksum-verified official Node runtime, licensing, own-collector lifecycle and CI smoke tests.
+- Add an isolated, frozen-source stability runner with an independent byte oracle, real collector restarts, outage/counter-reset faults and resource reports. A real 24-hour validation run is tracked separately from completed short tests.
+- Migrate database schema v2→v3 additively; older collectors must not be used against the upgraded database.
+
 ## 0.1.1 — 2026-10-22
 
 - English / Simplified Chinese interface with an Auto (system) language option and persistent browser preference.

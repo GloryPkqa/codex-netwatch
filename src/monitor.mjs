@@ -3,24 +3,47 @@ import { MihomoSource } from './mihomo.mjs';
 import { ProcessObserver } from './processes.mjs';
 import { SessionReader } from './sessions.mjs';
 import { DemoSource } from './demo.mjs';
+import { AnomalyDetector } from './anomalies.mjs';
 
 export class Monitor {
-  constructor(config, store) {
+  constructor(config, store, { now = Date.now } = {}) {
     this.config = config;
     this.store = store;
+    this.now = now;
     this.accounting = new Accounting();
     this.source = config.demo ? new DemoSource() : new MihomoSource(config);
     this.observer = new ProcessObserver(config);
     this.sessions = new SessionReader(config, store);
     this.state = 'starting';
     this.error = '';
-    this.startedAt = Date.now();
+    this.startedAt = this.now();
     this.lastAt = 0;
     this.lastSessionRefresh = 0;
     this.lastPrune = 0;
     this.lastAlert = 0;
     this.recent = [];
+    this.detector = new AnomalyDetector();
+    this.gaps = new Map();
+    this.diagnostics = { polls: 0, failures: 0, reconnects: 0, lastPollMs: 0, maxPollMs: 0 };
     this.alertMBPerMinute = store.get('alertMBPerMinute', config.alertMBPerMinute);
+  }
+  openGap(reason, from) {
+    if (!this.gaps.has(reason)) this.gaps.set(reason, this.store.openGap?.(reason, from));
+  }
+  closeGap(reason, to) {
+    if (!this.gaps.has(reason)) return;
+    const id = this.gaps.get(reason);
+    if (id !== undefined) this.store.closeGap?.(id, to);
+    this.gaps.delete(reason);
+  }
+  intervalGap(reason, from, to) {
+    const id = this.store.openGap?.(reason, Math.min(from, to));
+    if (id !== undefined) this.store.closeGap?.(id, Math.max(from, to));
+  }
+  resetBaseline() {
+    this.accounting.resetBaseline();
+    this.detector.reset();
+    this.recent = [];
   }
   start() {
     this.stopping = false;
@@ -29,20 +52,64 @@ export class Monitor {
   }
   async tick() {
     if (this.stopping) return;
-    const began = Date.now();
+    const began = this.now();
+    const pollBegan = performance.now();
+    let operation = 'collector';
+    this.diagnostics.polls++;
     try {
+      if (!this.trackingStarted) {
+        this.store.closeOpenGaps?.(began);
+        const previous = this.store.lastAt?.();
+        if (previous && previous > began) this.intervalGap('clock_changed', began, previous);
+        this.openGap(
+          previous ? 'collector_restart' : 'initial_baseline',
+          Math.min(previous || began, began),
+        );
+        this.trackingStarted = true;
+      }
       if (began - this.lastSessionRefresh >= 8000 && !this.config.demo) {
         this.sessions.refresh(began);
         this.lastSessionRefresh = began;
       }
+      operation = 'source';
       const snapshot = await this.source.snapshot();
+      operation = 'collector';
       if (this.stopping) return;
-      if (this.source.generation !== this.sourceGeneration) {
-        this.accounting.resetBaseline();
-        this.recent = [];
+      const now = this.now();
+      if (this.lastAt && now < this.lastAt) {
+        this.intervalGap('clock_changed', now, this.lastAt);
+        this.resetBaseline();
+      } else if (
+        this.lastAt &&
+        !this.gaps.has('source_unavailable') &&
+        !this.gaps.has('collector_error') &&
+        now - this.lastAt > Math.max(6000, this.config.intervalMs * 3)
+      ) {
+        this.intervalGap('sampling_delay', this.lastAt, now);
+        this.resetBaseline();
+      }
+      const sourceChanged = this.source.generation !== this.sourceGeneration;
+      if (sourceChanged) {
+        if (this.sourceGeneration !== undefined) {
+          this.intervalGap('source_changed', this.lastAt || began, now);
+          this.diagnostics.reconnects++;
+        }
+        this.resetBaseline();
         this.sourceGeneration = this.source.generation;
       }
-      const now = Date.now();
+      if (this.gaps.has('source_unavailable') && !sourceChanged) this.diagnostics.reconnects++;
+      for (const reason of [
+        'initial_baseline',
+        'collector_restart',
+        'source_unavailable',
+        'collector_error',
+      ])
+        this.closeGap(reason, now);
+      if (!this.config.demo) {
+        const observerReady = this.observer.status === 'ready' && now - this.observer.at <= 6000;
+        if (observerReady) this.closeGap('observer_unavailable', now);
+        else if (now - this.startedAt >= 6000) this.openGap('observer_unavailable', now);
+      }
       if (this.config.demo && this.source.tick % 8 === 1) {
         const examples = [
           ['demo-session-ui', '优化设置页交互', 'gpt-example'],
@@ -73,11 +140,14 @@ export class Monitor {
         (m, t) => this.observer.classify(m, t),
         this.sessions.active,
       );
-      this.store.record(sample);
+      const inserted = this.store.record(sample);
       this.latest = sample;
       this.lastAt = now;
       this.state = 'connected';
       this.error = '';
+      if (inserted !== false)
+        for (const event of this.detector.consume(sample, this.alertMBPerMinute))
+          this.store.anomaly?.(event);
       this.recent.push(sample);
       this.recent = this.recent.filter((x) => x.at >= now - 60000);
       const bytes = this.recent.reduce((n, x) => n + x.codexUp + x.codexDown, 0);
@@ -89,7 +159,7 @@ export class Monitor {
         this.lastAlert = now;
       }
       if (now - this.lastPrune >= 3600000) {
-        this.store.prune(this.config.retentionDays);
+        this.store.prune(this.config.retentionDays, now);
         this.lastPrune = now;
       }
     } catch (error) {
@@ -98,14 +168,30 @@ export class Monitor {
         ? error.message
         : '采集暂时失败，正在自动重试；空档不计为零流量。';
       // Reconnect starts a new baseline. Offline traffic is deliberately not invented.
-      this.accounting.resetBaseline();
-      this.recent = [];
+      this.diagnostics.failures++;
+      this.diagnostics.lastError = String(error.code || error.name || 'Error')
+        .replace(/[^a-zA-Z0-9_-]/g, '')
+        .slice(0, 64);
+      try {
+        this.openGap(
+          operation === 'source' ? 'source_unavailable' : 'collector_error',
+          this.lastAt || began,
+        );
+      } catch {
+        // A failing storage device may also reject the diagnostic write. Keep retrying.
+      }
+      this.resetBaseline();
       console.error(`[${new Date().toISOString()}] sampling failed: ${error.code || error.name}`);
     } finally {
+      this.diagnostics.lastPollMs = Math.round(performance.now() - pollBegan);
+      this.diagnostics.maxPollMs = Math.max(
+        this.diagnostics.maxPollMs,
+        this.diagnostics.lastPollMs,
+      );
       if (!this.stopping)
         this.timer = setTimeout(
           () => this.tick(),
-          Math.max(50, this.config.intervalMs - (Date.now() - began)),
+          Math.max(50, this.config.intervalMs - (performance.now() - pollBegan)),
         );
     }
   }
@@ -113,7 +199,10 @@ export class Monitor {
     const s = this.latest;
     const elapsed = s?.duration ? s.duration / 1000 : 1;
     const live =
-      this.state === 'connected' && Date.now() - this.lastAt < this.config.intervalMs + 6000;
+      this.state === 'connected' &&
+      this.now() - this.lastAt >= 0 &&
+      this.now() - this.lastAt < this.config.intervalMs + 6000;
+    const memory = process.memoryUsage();
     return {
       state: this.state,
       error: this.error,
@@ -134,6 +223,12 @@ export class Monitor {
       codexConnections: s?.rows.filter((x) => x.scope === 'codex').length || 0,
       unknownConnections: s?.rows.filter((x) => x.scope === 'unknown').length || 0,
       processes: this.observer.processes.size,
+      diagnostics: {
+        ...this.diagnostics,
+        uptimeMs: Math.max(0, this.now() - this.startedAt),
+        memory: { rss: memory.rss, heapUsed: memory.heapUsed, external: memory.external },
+        observerStaleMs: this.observer.at ? Math.max(0, this.now() - this.observer.at) : null,
+      },
     };
   }
   setThreshold(value) {
@@ -144,5 +239,12 @@ export class Monitor {
     this.stopping = true;
     clearTimeout(this.timer);
     this.observer.stop();
+    for (const reason of this.gaps.keys()) {
+      try {
+        this.closeGap(reason, this.now());
+      } catch {
+        // Shutdown must still release the observer if storage is unavailable.
+      }
+    }
   }
 }

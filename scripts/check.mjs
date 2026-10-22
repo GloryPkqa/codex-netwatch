@@ -10,7 +10,7 @@ function files(dir) {
   });
 }
 let failed = false;
-for (const file of ['src', 'public', 'scripts', 'test'].flatMap((dir) =>
+for (const file of ['src', 'public', 'scripts', 'test', 'desktop'].flatMap((dir) =>
   files(path.join(root, dir)),
 )) {
   const result = spawnSync(process.execPath, ['--check', file], {

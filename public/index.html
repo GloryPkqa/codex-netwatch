@@ -18,6 +18,7 @@
       <div class="nav-label">工作空间</div>
       <nav aria-label="主导航">
         <a class="nav-link active" href="#overview"><span>◫</span> 流量总览</a>
+        <a class="nav-link" href="#investigation"><span>!</span> 异常排查</a>
         <a class="nav-link" href="#connections"><span>⇄</span> 连接与去向</a>
         <a class="nav-link" href="#sessions"><span>◷</span> 会话活动</a>
         <a class="nav-link" href="#diagnostics"><span>⌁</span> 采集诊断</a>
@@ -25,7 +26,7 @@
       <div class="sidebar-bottom">
         <span class="local-dot"></span> 数据只保存在本机
         <p>无云端 · 无遥测 · 无外部资源</p>
-        <span class="version">v0.1.1 / MIHOMO ADAPTER</span>
+        <span class="version">v0.2.0 / MIHOMO ADAPTER</span>
       </div>
     </aside>
     <main>
@@ -131,6 +132,68 @@
           <div id="domains" class="domains"><p class="empty">暂无已观测流量</p></div>
         </section>
       </div>
+      <section id="investigation" class="investigation">
+        <article class="panel">
+          <div class="panel-heading">
+            <div>
+              <h2>异常排查</h2>
+              <p>定位已观测的突发上传、下载和持续上传，不按会话猜测流量。</p>
+            </div>
+          </div>
+          <p id="coverageSummary" class="coverage-summary">等待观测记录</p>
+          <p class="insight-note">
+            未识别占比仅针对连接快照，不代表完整抓包覆盖率；代理全局与连接快照可能存在差额。
+          </p>
+          <p class="insight-note">
+            主要连接线索取自每次采样最多 20 条主要上传或下载连接；异常窗口总量包含全部已识别 Codex
+            字节。
+          </p>
+          <div class="table-scroll">
+            <table>
+              <thead>
+                <tr>
+                  <th>异常类型</th>
+                  <th>观测窗口</th>
+                  <th>主要观测连接</th>
+                  <th class="number">窗口字节</th>
+                </tr>
+              </thead>
+              <tbody id="anomalyRows"></tbody>
+            </table>
+          </div>
+        </article>
+        <div class="investigation-grid">
+          <article class="panel">
+            <div class="panel-heading">
+              <div>
+                <h2>采集缺口</h2>
+                <p>断线、休眠、重启和识别受限均会留下记录，缺口字节未知。</p>
+              </div>
+            </div>
+            <div id="gapRows" class="gap-list"></div>
+          </article>
+          <article class="panel">
+            <div class="panel-heading">
+              <div>
+                <h2>进程流量排行</h2>
+                <p>所选时间范围的全部已观测进程，仅展示前 8 项。</p>
+              </div>
+            </div>
+            <div class="table-scroll">
+              <table>
+                <thead>
+                  <tr>
+                    <th>进程</th>
+                    <th class="number">上传</th>
+                    <th class="number">下载</th>
+                  </tr>
+                </thead>
+                <tbody id="processRows"></tbody>
+              </table>
+            </div>
+          </article>
+        </div>
+      </section>
       <section class="panel" id="connections">
         <div class="panel-heading connection-heading">
           <div>
@@ -262,6 +325,14 @@
           <code>MIHOMO_SECRET</code> 环境变量提供。
         </div>
         <div class="dialog-actions"><button class="button" type="submit">保存设置</button></div>
+        <div class="diagnostic-export">
+          <button id="diagnosticsButton" type="button" class="button secondary">
+            导出脱敏诊断
+          </button>
+          <p class="help">
+            不含密钥、路径、域名、进程名称或会话内容。仍含运行环境与汇总用量，分享前请检查。
+          </p>
+        </div>
         <div class="stop-section">
           <div>
             <strong>停止后台采集</strong>

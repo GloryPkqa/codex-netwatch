@@ -12,6 +12,8 @@ Local-first network observability for Codex. Uses **Mihomo connection counters**
 
 Requires Windows 10/11, Node.js **24+**, and a running Mihomo/Clash Verge Rev instance. No npm install, API key, packet capture driver, HTTPS interception, or third-party runtime dependencies.
 
+**Portable option:** download `codex-netwatch-windows-x64.zip` from [Releases](https://github.com/GloryPkqa/codex-netwatch/releases), extract the full folder to a writable location and run `Codex-Netwatch.exe`. It bundles a checksum-verified official Node runtime; no Node installation is needed. Requires .NET Framework 4.8. The tray opens the dashboard and starts/stops its own collector. The preview EXE is unsigned. See [portable build and lifecycle](docs/WINDOWS_PORTABLE.md).
+
 - Double-click `start.cmd`, or run `npm start`.
 - Dashboard: `http://127.0.0.1:43128`.
 - Closing the page leaves collection running. Use **Settings → Stop monitor**, or Ctrl+C for a terminal instance.
@@ -35,6 +37,12 @@ Requires Windows 10/11, Node.js **24+**, and a running Mihomo/Clash Verge Rev in
 - Session token increments cover observed runtime periods across restarts, independently of the network range selector. No offline token backfill.
 
 ## Configuration
+
+The **Traffic investigation** panel persists upload/download bursts, sustained upload windows, the largest retained measured contributor, process totals, and collection gaps. Burst detection uses the configured decimal MB/60-second threshold. Sustained upload requires at least two minutes, average upload at least half that rate, and at least 75% of measured time above a quarter of that rate. Events rearm after recovery, with a five-minute cooldown. Context retains the leading 10 uploads and 10 downloads per sample; it does not attribute every window byte to the displayed connection. Gaps never invent offline bytes. Investigation summaries refresh within 10 seconds; normal live metrics remain separate.
+
+**Settings → Export redacted diagnostics** downloads an allowlisted JSON report with versions, collector state, aggregate counters, resource measurements and SQLite health. It excludes secrets, paths, domains, IPs, process names/PIDs, session titles/IDs and log/chat/tool contents. Review the remaining runtime and usage summary before sharing.
+
+See [stability validation](docs/STABILITY.md) for reproducible fault/load and 24–72-hour runs. A short smoke test does not establish 24-hour stability; reports record actual elapsed time and reject major scheduling pauses. The v0.2.0 preview begins a real 24-hour run, whose completion is reported separately.
 
 Copy `config.example.json` to `config.local.json`. Restart after changes. Environment overrides: `CODEX_HOME`, `CODEX_FLOW_CONTROLLER`, `CODEX_FLOW_PORT`, `CODEX_FLOW_DATA_DIR`, `MIHOMO_SECRET`.
 

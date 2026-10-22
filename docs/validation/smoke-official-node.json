@@ -1,0 +1,73 @@
+{
+  "reportVersion": 1,
+  "app": "codex-netwatch",
+  "packageVersion": "0.2.0",
+  "sourceSha256": "73895f1dc4bb4a4e368a488bfdcce64a1f1004bf25608e8e8d07f4a9a9f93a21",
+  "environment": {
+    "platform": "win32",
+    "architecture": "x64",
+    "node": "v24.22.1"
+  },
+  "startedAt": "2026-10-22T10:38:45.343Z",
+  "updatedAt": "2026-10-22T10:39:15.865Z",
+  "requestedDurationMs": 30000,
+  "elapsedWallClockMs": 30523,
+  "durationSatisfied": true,
+  "completed": true,
+  "status": "passed",
+  "workload": {
+    "connections": 1000,
+    "intervalMs": 500,
+    "outageEveryMs": 5000,
+    "outageForMs": 1000,
+    "restartEveryMs": 8000,
+    "snapshots": 46,
+    "shortConnections": 231,
+    "counterResets": 2,
+    "globalResets": 2,
+    "failures503": 17,
+    "restarts": 3
+  },
+  "measurements": {
+    "maximumCollectorRssBytes": 93003776,
+    "maximumDatabaseBytes": 3467200,
+    "maximumDashboardLatencyMs": 13.49,
+    "maximumLoopPauseMs": 1498,
+    "maximumCheckpointGapMs": 2712,
+    "activeSamplingCoverage": {
+      "observedMs": 19361,
+      "fractionOfWallTime": 0.6343168855498941,
+      "definition": "Sum of persisted sample intervals up to two polling intervals; startup, reconnect baselines and longer observation gaps are excluded."
+    },
+    "harnessRssBytes": 79572992,
+    "lastCollectorState": "connected",
+    "collectorDiagnostics": {
+      "polls": 10,
+      "failures": 2,
+      "reconnects": 1,
+      "lastPollMs": 21,
+      "maxPollMs": 36,
+      "uptimeMs": 5455,
+      "observerStaleMs": 668
+    },
+    "database": {
+      "samples": 46,
+      "firstAt": 1792665525860,
+      "lastAt": 1792665554883,
+      "observedSamplingMs": 19361,
+      "largestSampleIntervalMs": 856,
+      "codex_up": 2905784,
+      "codex_down": 1268212,
+      "all_up": 8243426,
+      "all_down": 3597662,
+      "unknown_up": 2897570,
+      "unknown_down": 1264332,
+      "expectedResponses": 46,
+      "integrity": "ok",
+      "errors": []
+    }
+  },
+  "failures": [],
+  "interruptions": [],
+  "privacy": "Synthetic .invalid hosts and an empty CODEX_HOME; no user sessions, proxy credentials, endpoint paths or process IDs included."
+}

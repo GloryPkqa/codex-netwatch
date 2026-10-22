@@ -2,7 +2,7 @@ $ErrorActionPreference = 'Stop'
 $projectRoot = Split-Path -Parent $PSScriptRoot
 $outputFile = Join-Path (Split-Path -Parent $projectRoot) 'codex-netwatch-source.zip'
 # Explicit allowlist: never package user configuration, databases, logs, or .git.
-$items = @('src','public','scripts','test','docs','.github','.gitignore','.gitattributes','.prettierrc.json','.prettierignore','package.json','config.example.json','start.cmd','start-demo.cmd','README.md','README.en.md','CONTRIBUTING.md','SECURITY.md','LICENSE','CHANGELOG.md')
+$items = @('src','public','scripts','test','desktop','docs','.github','.gitignore','.gitattributes','.prettierrc.json','.prettierignore','package.json','config.example.json','start.cmd','start-demo.cmd','README.md','README.en.md','CONTRIBUTING.md','SECURITY.md','LICENSE','CHANGELOG.md')
 $stageRoot = Join-Path $projectRoot 'data\package-stage'
 $stage = Join-Path $stageRoot 'codex-netwatch'
 if (Test-Path -LiteralPath $stageRoot) {

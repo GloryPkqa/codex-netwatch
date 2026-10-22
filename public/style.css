@@ -1033,6 +1033,78 @@ th {
 .session-cell small {
   white-space: nowrap;
 }
+.investigation {
+  margin-bottom: 22px;
+}
+.investigation-grid {
+  display: grid;
+  grid-template-columns: 1fr 1.2fr;
+  gap: 20px;
+}
+.investigation-grid > .panel {
+  min-width: 0;
+  margin-bottom: 0;
+}
+.coverage-summary {
+  padding: 0 24px 8px;
+  color: var(--mint);
+  font-size: 12px;
+}
+.insight-note {
+  padding: 0 24px 20px;
+  color: var(--muted);
+  font-size: 11px;
+}
+.investigation .table-scroll {
+  max-height: 340px;
+}
+.investigation td small {
+  display: block;
+  color: var(--muted);
+  font-size: 10px;
+  margin-top: 4px;
+}
+.anomaly-context {
+  max-width: 280px;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.anomaly-context button {
+  margin-top: 8px;
+}
+.gap-list {
+  max-height: 340px;
+  overflow: auto;
+  padding: 0 24px 18px;
+}
+.gap-row {
+  padding: 12px 0;
+  border-bottom: 1px solid var(--line);
+}
+.gap-row > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 12px;
+}
+.gap-row > div span,
+.gap-row small {
+  color: var(--muted);
+  font-size: 10px;
+}
+.diagnostic-export {
+  margin-top: 24px;
+  padding-top: 20px;
+  border-top: 1px solid var(--line);
+}
+.diagnostic-export .help {
+  margin-bottom: 0;
+}
+@media (max-width: 1050px) {
+  .investigation-grid {
+    grid-template-columns: 1fr;
+  }
+}
 h2 .tiny-tag {
   vertical-align: middle;
   margin-left: 8px;

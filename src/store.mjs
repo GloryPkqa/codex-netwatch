@@ -7,7 +7,7 @@ export class Store {
     fs.mkdirSync(dir, { recursive: true });
     this.db = new DatabaseSync(path.join(dir, 'monitor.sqlite'));
     const version = this.db.prepare('PRAGMA user_version').get().user_version;
-    if (version > 2) {
+    if (version > 3) {
       this.db.close();
       throw new Error('Database was created by a newer Codex Netwatch version');
     }
@@ -41,6 +41,15 @@ export class Store {
       );
       CREATE TABLE IF NOT EXISTS alerts (id INTEGER PRIMARY KEY, at INTEGER NOT NULL, message TEXT NOT NULL);
       CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT NOT NULL);
+      CREATE TABLE IF NOT EXISTS collection_gaps (
+        id INTEGER PRIMARY KEY, reason TEXT NOT NULL, started_at INTEGER NOT NULL, ended_at INTEGER
+      );
+      CREATE INDEX IF NOT EXISTS gaps_time ON collection_gaps(started_at);
+      CREATE TABLE IF NOT EXISTS anomalies (
+        id INTEGER PRIMARY KEY, kind TEXT NOT NULL, started_at INTEGER NOT NULL,
+        ended_at INTEGER NOT NULL, detail TEXT NOT NULL, UNIQUE(kind,ended_at)
+      );
+      CREATE INDEX IF NOT EXISTS anomalies_time ON anomalies(ended_at);
     `);
     const bucketColumns = this.db
       .prepare('PRAGMA table_info(buckets)')
@@ -50,9 +59,9 @@ export class Store {
       this.db.exec(`BEGIN;
         ALTER TABLE buckets ADD COLUMN last_at INTEGER NOT NULL DEFAULT 0;
         UPDATE buckets SET last_at=MIN(minute+59999, (SELECT last_seen FROM connections WHERE id=connection_id));
-        PRAGMA user_version=2;
+        PRAGMA user_version=3;
         COMMIT;`);
-    } else this.db.exec('PRAGMA user_version=2');
+    } else this.db.exec('PRAGMA user_version=3');
     this.insertSample = this.db.prepare('INSERT OR IGNORE INTO samples VALUES (?,?,?,?,?,?,?,?,?)');
     this.insertConnection = this.db.prepare(
       `INSERT INTO connections VALUES (?,?,?,?,?,?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET host=excluded.host, process=excluded.process,pid=excluded.pid,scope=excluded.scope,evidence=excluded.evidence,last_seen=excluded.last_seen,rule=excluded.rule`,
@@ -103,6 +112,7 @@ export class Store {
           );
       }
       this.db.exec('COMMIT');
+      return true;
     } catch (error) {
       this.db.exec('ROLLBACK');
       throw error;
@@ -180,6 +190,114 @@ export class Store {
   firstAt() {
     return this.db.prepare('SELECT MIN(at) AS at FROM samples').get().at;
   }
+  lastAt() {
+    return this.db.prepare('SELECT MAX(at) AS at FROM samples').get().at;
+  }
+  openGap(reason, from) {
+    if (
+      ![
+        'initial_baseline',
+        'collector_restart',
+        'source_unavailable',
+        'collector_error',
+        'source_changed',
+        'sampling_delay',
+        'observer_unavailable',
+        'clock_changed',
+      ].includes(reason) ||
+      !Number.isSafeInteger(from) ||
+      from < 0
+    )
+      throw new Error('Invalid collection gap');
+    return Number(
+      this.db
+        .prepare('INSERT INTO collection_gaps(reason,started_at) VALUES (?,?)')
+        .run(reason, from).lastInsertRowid,
+    );
+  }
+  closeGap(id, to) {
+    if (!Number.isSafeInteger(to) || to < 0) throw new Error('Invalid gap end');
+    this.db
+      .prepare(
+        'UPDATE collection_gaps SET ended_at=MAX(started_at,?) WHERE id=? AND ended_at IS NULL',
+      )
+      .run(to, id);
+  }
+  closeOpenGaps(to) {
+    this.db
+      .prepare('UPDATE collection_gaps SET ended_at=MAX(started_at,?) WHERE ended_at IS NULL')
+      .run(to);
+  }
+  anomaly(event) {
+    this.db
+      .prepare('INSERT OR IGNORE INTO anomalies(kind,started_at,ended_at,detail) VALUES (?,?,?,?)')
+      .run(event.kind, event.from, event.to, JSON.stringify(event));
+  }
+  insights(from, to) {
+    const coverage = this.db
+      .prepare(
+        `SELECT COUNT(*) AS sampleCount,MIN(at) AS firstSampleAt,MAX(at) AS lastSampleAt,
+        COALESCE(SUM(MIN(duration,MAX(0,at-?))),0) AS observedDurationMs,
+        COALESCE(SUM(codex_up),0) AS codexUp,COALESCE(SUM(codex_down),0) AS codexDown,
+        COALESCE(SUM(all_up+all_down),0) AS reportedProxyBytes
+        FROM samples WHERE at>=? AND at<=?`,
+      )
+      .get(from, from, to);
+    const measured = this.db
+      .prepare(
+        `SELECT COALESCE(SUM(up+down),0) AS totalConnectionBytes,
+        COALESCE(SUM(CASE WHEN scope='unknown' THEN up+down ELSE 0 END),0) AS unknownBytes
+        FROM buckets WHERE minute>=? AND minute<=?`,
+      )
+      .get(from, to);
+    const gaps = this.db
+      .prepare(
+        `SELECT id,reason,started_at AS 'from',ended_at AS 'to' FROM collection_gaps
+        WHERE started_at<=? AND (ended_at IS NULL OR ended_at>=?) ORDER BY started_at DESC,id DESC LIMIT 100`,
+      )
+      .all(to, from);
+    const counts = this.db
+      .prepare(
+        `SELECT COUNT(*) AS gapCount,COALESCE(SUM(ended_at IS NULL),0) AS openGapCount
+        FROM collection_gaps WHERE started_at<=? AND (ended_at IS NULL OR ended_at>=?)`,
+      )
+      .get(to, from);
+    const anomalies = this.db
+      .prepare(
+        `SELECT id,detail FROM anomalies WHERE started_at<=? AND ended_at>=?
+        ORDER BY ended_at DESC,id DESC LIMIT 100`,
+      )
+      .all(to, from)
+      .map((row) => ({ ...JSON.parse(row.detail), id: row.id }));
+    const processes = this.db
+      .prepare(
+        `SELECT CASE WHEN b.scope='unknown' THEN '' ELSE c.process END AS process,b.scope,
+        COUNT(DISTINCT CASE WHEN b.scope='unknown' THEN NULL ELSE c.pid END) AS pidCount,
+        SUM(b.up) AS up,SUM(b.down) AS down,COUNT(DISTINCT c.id) AS connections,MAX(b.last_at) AS last_seen
+        FROM buckets b JOIN connections c ON c.id=b.connection_id WHERE b.minute>=? AND b.minute<=?
+        GROUP BY 1,b.scope ORDER BY SUM(b.up+b.down) DESC LIMIT 20`,
+      )
+      .all(from, to)
+      .map((row) => ({
+        ...row,
+        process: row.process.replaceAll('\\', '/').split('/').at(-1),
+      }));
+    return {
+      anomalies,
+      gaps,
+      processes,
+      coverage: {
+        ...coverage,
+        ...measured,
+        ...counts,
+        attributedBytes: measured.totalConnectionBytes - measured.unknownBytes,
+        unknownShare: measured.totalConnectionBytes
+          ? measured.unknownBytes / measured.totalConnectionBytes
+          : null,
+        measurement: 'mihomo_snapshot_deltas',
+      },
+    };
+  }
   prune(days, now = Date.now()) {
     const cutoff = now - days * 86400000;
     this.db.exec('BEGIN');
@@ -192,6 +310,8 @@ export class Store {
         )
         .run(cutoff);
       this.db.prepare('DELETE FROM alerts WHERE at<?').run(cutoff);
+      this.db.prepare('DELETE FROM anomalies WHERE ended_at<?').run(cutoff);
+      this.db.prepare('DELETE FROM collection_gaps WHERE ended_at<?').run(cutoff);
       this.db.exec('COMMIT');
     } catch (error) {
       this.db.exec('ROLLBACK');

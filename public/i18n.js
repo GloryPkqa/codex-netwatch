@@ -1,6 +1,59 @@
 // Source-language keys keep the Chinese copy next to its English translation.
 // Values are plain text: never inject translations as HTML.
 export const messages = Object.freeze({
+  异常排查: 'Traffic investigation',
+  '查看连接 ↘': 'Inspect connections ↘',
+  'PID 未知': 'PID unavailable',
+  '采集器内存（Node）': 'Collector memory (Node)',
+  上次采集耗时: 'Last collection duration',
+  采集失败次数: 'Collection failures',
+  '主要连接线索取自每次采样最多 20 条主要上传或下载连接；异常窗口总量包含全部已识别 Codex 字节。':
+    'Context uses up to 20 leading upload or download connections per sample. Event totals include all measured Codex bytes.',
+  '定位已观测的突发上传、下载和持续上传，不按会话猜测流量。':
+    'Inspect observed upload bursts, download bursts and sustained uploads without guessing session ownership.',
+  等待观测记录: 'Waiting for observations',
+  '未识别占比仅针对连接快照，不代表完整抓包覆盖率；代理全局与连接快照可能存在差额。':
+    'The unidentified share applies to connection snapshots, not complete capture coverage. Global proxy counters may differ from connection snapshots.',
+  异常类型: 'Type',
+  观测窗口: 'Observation window',
+  主要观测连接: 'Largest observed contributor',
+  窗口字节: 'Window bytes',
+  采集缺口: 'Collection gaps',
+  '断线、休眠、重启和识别受限均会留下记录，缺口字节未知。':
+    'Disconnects, sleep, restarts and unavailable process evidence are recorded. Bytes missed during gaps remain unknown.',
+  进程流量排行: 'Traffic by process',
+  '所选时间范围的全部已观测进程，仅展示前 8 项。':
+    'All observed processes in the selected range. Top 8 shown.',
+  进程: 'Process',
+  导出脱敏诊断: 'Export redacted diagnostics',
+  '不含密钥、路径、域名、进程名称或会话内容。仍含运行环境与汇总用量，分享前请检查。':
+    'Excludes secrets, paths, domains, process names and session content. Runtime details and aggregate usage remain. Review before sharing.',
+  突发上传: 'Upload burst',
+  突发下载: 'Download burst',
+  持续上传: 'Sustained upload',
+  首次建立基线: 'Initial baseline',
+  程序重启: 'Collector restart',
+  代理接口断线: 'Controller disconnected',
+  代理接口切换: 'Controller changed',
+  采样延迟或休眠: 'Sampling delay or sleep',
+  进程识别不可用: 'Process evidence unavailable',
+  系统时间变化: 'System clock changed',
+  采集失败: 'Collection failed',
+  '{value} 秒': '{value} seconds',
+  '{value} 分钟': '{value} minutes',
+  '连接快照 {bytes} · 未识别 {unknown}（{share}）· 代理全局 {proxy}':
+    'Connection snapshots {bytes} · Unidentified {unknown} ({share}) · Global proxy {proxy}',
+  '所选范围没有已记录异常。阈值提醒不会阻断网络。':
+    'No recorded anomalies in this range. Threshold alerts do not block traffic.',
+  '主要观测连接，非全部字节归因': 'Largest observed contributor, not attribution of all bytes',
+  '所选范围没有已记录采集缺口。': 'No recorded collection gaps in this range.',
+  尚未恢复: 'Not recovered',
+  持续中: 'Ongoing',
+  '暂无进程流量排行。': 'No process traffic yet.',
+  '{count} 个 PID': '{count} PIDs',
+  '脱敏诊断已导出。仍含运行环境和汇总用量，分享前请检查。':
+    'Redacted diagnostics exported. Runtime details and aggregate usage remain. Review before sharing.',
+  'Desktop instance marker required': 'Desktop instance marker required',
   'Codex Netwatch · 本地流量监控': 'Codex Netwatch · Local network monitor',
   工作空间: 'WORKSPACE',
   主导航: 'Main navigation',

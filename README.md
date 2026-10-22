@@ -6,7 +6,7 @@
 
 项目仓库：[GloryPkqa/codex-netwatch](https://github.com/GloryPkqa/codex-netwatch) · [预发布版本](https://github.com/GloryPkqa/codex-netwatch/releases)
 
-> 当前版本：0.1.1。Windows 优先，独立于 Codex 运行，不是 OpenAI 官方工具。不调用 OpenAI API，不需要 API Key，不修改代理规则，不解密 HTTPS。
+> 当前版本：0.2.0。Windows 优先，独立于 Codex 运行，不是 OpenAI 官方工具。不调用 OpenAI API，不需要 API Key，不修改代理规则，不解密 HTTPS。
 
 ![仅使用合成数据的界面预览](docs/preview.png)
 
@@ -18,6 +18,9 @@
 - 列出最近会话的日志活动和 token 计数，查看活动时间与采样时间重合情况。
 - 支持最近 60 秒流量阈值提醒、可选浏览器桌面通知、CSV 导出。
 - 自动发现 Clash Verge Rev 的本地控制接口，包括实际运行的 Windows 命名管道。
+- 异常排查记录突发上传 / 下载、持续上传、主要连接线索和进程排行，可跳转到对应时间窗口查看连接。
+- 持久化断线、休眠延迟、重启、接口变化和识别受限的采集缺口，明确标记未知字节。
+- 提供内置 Node 的 Windows x64 便携托盘版，以及不含身份和连接明细的脱敏诊断 JSON 导出。
 - 零第三方运行依赖，静态页面无外部字体、CDN 或遥测。演示数据使用单独数据库。
 
 ## 先了解统计口径
@@ -37,7 +40,11 @@ Mihomo `/connections` 是活动连接快照。采样间隔内建立又关闭的�
 
 ## 开始使用（Windows）
 
-要求：Windows 10/11、**Node.js 24 或更新版本**、正在运行的 Mihomo / Clash Verge Rev。Windows 自带 PowerShell 5.1 即可，无需管理员权限运行本工具；个别系统策略可能限制进程识别，此时保持「待识别」。
+要求：Windows 10/11、正在运行的 Mihomo / Clash Verge Rev。Windows 自带 PowerShell 5.1 即可，无需管理员权限运行本工具；个别系统策略可能限制进程识别，此时保持「待识别」。
+
+**便携版：** 从 [Releases](https://github.com/GloryPkqa/codex-netwatch/releases) 下载 `codex-netwatch-windows-x64.zip`，完整解压到可写目录，双击 `Codex-Netwatch.exe`。自带经官方 SHA-256 验证的 Node.js，无需另行安装 Node；要求 .NET Framework 4.8。托盘可打开面板、启动 / 停止本托盘创建的采集器及退出。当前 EXE 未签名；详见[便携版说明](docs/WINDOWS_PORTABLE.md)。
+
+**源码版：** 安装 **Node.js 24 或更新版本**，按以下步骤运行。
 
 1. 启动代理，正常使用 Codex。
 2. 双击 `start.cmd`。程序启动后自动打开 `http://127.0.0.1:43128`。
@@ -58,6 +65,16 @@ npm start
 如果你使用的是不带 npm 的现有 Codex Node 运行时，也可直接运行 `node --disable-warning=ExperimentalWarning src/main.mjs`。启动脚本不依赖 npm。
 
 想先看合成数据：双击 `start-demo.cmd`，使用端口 `43129`，不会读取真实会话。`npm run demo` 默认仍使用 `43128`，与真实实例并行时需指定 `CODEX_FLOW_PORT=43129`。
+
+## 异常排查与诊断
+
+异常检测共用提醒阈值：60 秒内单方向字节达到所设十进制 MB 时记录突发；持续上传需至少 2 分钟，平均速率达到该阈值的一半，且至少 75% 已观测时间高于阈值的四分之一。异常恢复后可重新触发，并有 5 分钟冷却。每次采样保留主要上传、下载各前 10 条作为线索，显示的连接不代表窗口内全部字节归因。异常详情可跨所选时间边界；窗口字节是该完整事件的观测量。异常汇总最多约 10 秒更新一次。
+
+采集缺口按当前时间范围显示，重叠原因不会换算成遗漏字节。数据库 v2→v3 自动新增表，不改变旧计数；升级前先正常停止，保留备份，升级后不要用旧版程序打开同一数据库。
+
+**设置 → 导出脱敏诊断** 下载 JSON，包含软件版本、采集状态、资源指标、SQLite 完整性和汇总用量；排除密钥、路径、IP / 域名、进程名称 / PID、会话标题 / ID、日志和正文。分享前仍请检查其中的运行环境与汇总信息。
+
+[稳定性验证说明](docs/STABILITY.md) 提供可复现的故障、负载及 24–72 小时测试。v0.2.0 的实际 24 小时运行单独跟踪；短测或运行中的报告不能视为已通过 24 小时验证。
 
 ## 配置
 

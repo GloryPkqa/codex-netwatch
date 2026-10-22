@@ -26,6 +26,9 @@ export function loadConfig(root, env = process.env) {
   if (env.CODEX_FLOW_CONTROLLER) config.controller = env.CODEX_FLOW_CONTROLLER;
   if (env.CODEX_FLOW_PORT) config.port = Number(env.CODEX_FLOW_PORT);
   config.secret = env.MIHOMO_SECRET || '';
+  config.desktopToken = env.CODEX_NETWATCH_DESKTOP_TOKEN || '';
+  if (config.desktopToken && !/^[a-f0-9]{32,128}$/i.test(config.desktopToken))
+    throw new Error('Invalid desktop instance marker');
   config.root = root;
   config.demo = process.argv.includes('--demo');
   const dataRoot = env.CODEX_FLOW_DATA_DIR

@@ -18,3 +18,24 @@ jobs:
           package-manager-cache: false
       - run: npm run check
       - run: npm test
+  portable-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+          package-manager-cache: false
+      - name: Build portable package with verified official runtime
+        shell: powershell
+        run: powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/package-windows.ps1 -OutputFile "$env:RUNNER_TEMP\codex-netwatch-windows-x64.zip"
+      - name: Verify tray lifecycle and ownership isolation
+        run: node desktop/smoke.mjs
+      - uses: actions/upload-artifact@v6
+        with:
+          name: codex-netwatch-windows-x64
+          path: ${{ runner.temp }}/codex-netwatch-windows-x64.zip
+          if-no-files-found: error
+          retention-days: 7

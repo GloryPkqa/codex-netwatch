@@ -8,10 +8,13 @@ import {
   captureStaticTranslations,
 } from './i18n.js';
 const browserLanguages = navigator.languages || [navigator.language];
-const systemLocale = await fetch('/api/health', { signal: AbortSignal.timeout(1500) })
+const bootstrap = await fetch('/api/health', { signal: AbortSignal.timeout(1500) })
   .then((response) => (response.ok ? response.json() : null))
-  .then((health) => (typeof health?.systemLocale === 'string' ? health.systemLocale : null))
   .catch(() => null);
+const systemLocale = typeof bootstrap?.systemLocale === 'string' ? bootstrap.systemLocale : null;
+let desktopInstance = /^[a-f0-9]{32,128}$/i.test(bootstrap?.desktopInstance || '')
+  ? bootstrap.desktopInstance
+  : '';
 let language = readLanguage(safeStorage(), browserLanguages, systemLocale);
 const t = (message, values) => translate(message, language, values);
 const locale = () => (language === 'en' ? 'en-US' : 'zh-CN');
@@ -38,6 +41,7 @@ let latest = null,
   customRange = null,
   sessionsSignature = '',
   alertsSignature = '',
+  insightsSignature = '',
   lastAlertId = null,
   refreshSequence = 0;
 let notificationEnabled = false;
@@ -92,6 +96,7 @@ const dateTime = (value) =>
 const number = (value) =>
   value === null || value === undefined ? '—' : Number(value).toLocaleString(locale());
 function toast(message) {
+  (document.querySelector('dialog[open]') || document.body).append($('toast'));
   $('toast').textContent = message;
   $('toast').hidden = false;
   clearTimeout(toast.timer);
@@ -99,10 +104,24 @@ function toast(message) {
 }
 
 async function api(url, options = {}) {
+  if (url === '/api/stop') {
+    try {
+      const health = await (
+        await fetch('/api/health', { signal: AbortSignal.timeout(1500) })
+      ).json();
+      if (health.app === 'codex-flow')
+        desktopInstance = /^[a-f0-9]{32,128}$/i.test(health.desktopInstance || '')
+          ? health.desktopInstance
+          : '';
+    } catch {
+      /* Existing marker can still stop the current desktop instance. */
+    }
+  }
   const response = await fetch(url, {
     ...options,
     headers: {
       'X-Codex-Flow': '1',
+      ...(desktopInstance ? { 'X-Codex-Desktop-Token': desktopInstance } : {}),
       ...(options.body ? { 'Content-Type': 'application/json' } : {}),
       ...options.headers,
     },
@@ -176,7 +195,116 @@ function render(data) {
   renderSessions(data.sessions);
   renderDiagnostics(s);
   renderAlerts(data.alerts);
+  renderInsights(data.insights);
   drawChart();
+}
+const anomalyNames = {
+  upload_burst: '突发上传',
+  download_burst: '突发下载',
+  sustained_upload: '持续上传',
+};
+const gapNames = {
+  initial_baseline: '首次建立基线',
+  collector_restart: '程序重启',
+  source_unavailable: '代理接口断线',
+  source_changed: '代理接口切换',
+  sampling_delay: '采样延迟或休眠',
+  observer_unavailable: '进程识别不可用',
+  clock_changed: '系统时间变化',
+  collector_error: '采集失败',
+};
+function duration(ms) {
+  if (!Number.isFinite(ms) || ms < 0) return '—';
+  return ms < 60000
+    ? t('{value} 秒', { value: (ms / 1000).toFixed(1) })
+    : t('{value} 分钟', { value: (ms / 60000).toFixed(1) });
+}
+function renderInsights(data) {
+  const signature = language + JSON.stringify(data);
+  if (signature === insightsSignature) return;
+  insightsSignature = signature;
+  const events = $('anomalyRows'),
+    gaps = $('gapRows'),
+    processes = $('processRows');
+  events.replaceChildren();
+  gaps.replaceChildren();
+  processes.replaceChildren();
+  const c = data?.coverage;
+  $('coverageSummary').textContent = c
+    ? t('连接快照 {bytes} · 未识别 {unknown}（{share}）· 代理全局 {proxy}', {
+        bytes: byteText(c.totalConnectionBytes),
+        unknown: byteText(c.unknownBytes),
+        share: c.unknownShare === null ? '—' : `${(c.unknownShare * 100).toFixed(1)}%`,
+        proxy: byteText(c.reportedProxyBytes),
+      })
+    : t('等待观测记录');
+  if (!data?.anomalies?.length)
+    emptyRow(events, 4, t('所选范围没有已记录异常。阈值提醒不会阻断网络。'));
+  for (const event of data?.anomalies || []) {
+    const tr = node('tr'),
+      kind = node('td', t(anomalyNames[event.kind] || '未知')),
+      window = node('td', `${dateTime(event.from)} — ${clock(event.to)}`),
+      context = node('td', event.process || t('尚未识别'), 'anomaly-context'),
+      value = node('td', byteText(event.bytes), 'number');
+    kind.append(node('small', duration(event.to - event.from)));
+    context.append(
+      node('small', event.host || '—'),
+      node('small', t('主要观测连接，非全部字节归因')),
+    );
+    context.title = `${event.process || ''} / ${event.host || ''}`;
+    const inspect = node('button', t('查看连接 ↘'), 'button secondary small');
+    inspect.addEventListener('click', () => {
+      $('scope').value = 'codex';
+      $('search').value = event.host || event.process || '';
+      $('range').value = 'custom';
+      customRange = { from: event.from, to: event.to };
+      const inputTime = (at) =>
+        new Date(at - new Date(at).getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+      $('fromTime').value = inputTime(event.from);
+      $('toTime').value = inputTime(Math.ceil(event.to / 60000) * 60000);
+      $('customRange').hidden = false;
+      $('exportButton').disabled = false;
+      refreshNow();
+      $('connections').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+    context.append(inspect);
+    value.append(node('small', `↑ ${byteText(event.up)} · ↓ ${byteText(event.down)}`));
+    tr.append(kind, window, context, value);
+    events.append(tr);
+  }
+  if (!data?.gaps?.length) gaps.append(node('p', t('所选范围没有已记录采集缺口。'), 'empty'));
+  for (const gap of (data?.gaps || []).slice(0, 20)) {
+    const row = node('div', undefined, 'gap-row'),
+      line = node('div');
+    const from = Math.max(gap.from, latest.range.from),
+      to = Math.min(gap.to ?? latest.range.to, latest.range.to);
+    line.append(
+      node('strong', t(gapNames[gap.reason] || '采集失败')),
+      node('span', gap.to === null ? t('尚未恢复') : duration(to - from)),
+    );
+    row.append(
+      line,
+      node('small', `${dateTime(from)} — ${gap.to === null ? t('持续中') : clock(to)}`),
+    );
+    gaps.append(row);
+  }
+  if (!data?.processes?.length) emptyRow(processes, 3, t('暂无进程流量排行。'));
+  for (const process of (data?.processes || []).slice(0, 8)) {
+    const tr = node('tr'),
+      identity = node('td', process.process || t('待识别'));
+    identity.append(
+      node(
+        'small',
+        `${t(scopeName[process.scope] || '全部进程')} · ${process.pidCount ? t('{count} 个 PID', { count: process.pidCount }) : t('PID 未知')}`,
+      ),
+    );
+    tr.append(
+      identity,
+      node('td', byteText(process.up), 'number'),
+      node('td', byteText(process.down), 'number'),
+    );
+    processes.append(tr);
+  }
 }
 function renderDomains(rows) {
   const wrap = $('domains');
@@ -345,6 +473,14 @@ function renderDiagnostics(s) {
     [t('本次监控启动'), dateTime(s.startedAt)],
     [t('数据保留'), t('{days} 天', { days: s.retentionDays })],
     [t('提醒阈值'), t('{amount} MB / 60 秒', { amount: s.alertMBPerMinute })],
+    [t('采集器内存（Node）'), byteText(s.diagnostics?.memory?.rss)],
+    [
+      t('上次采集耗时'),
+      Number.isFinite(s.diagnostics?.lastPollMs)
+        ? `${s.diagnostics.lastPollMs.toFixed(1)} ms`
+        : '—',
+    ],
+    [t('采集失败次数'), number(s.diagnostics?.failures)],
   ];
   $('diagnosticList').replaceChildren(
     ...rows.map(([label, value]) => {
@@ -570,6 +706,27 @@ $('settingsForm').addEventListener('submit', async (event) => {
     refreshNow();
   } catch (error) {
     toast(error.message);
+  }
+});
+$('diagnosticsButton').addEventListener('click', async () => {
+  const button = $('diagnosticsButton');
+  button.disabled = true;
+  try {
+    const response = await api('/api/diagnostics');
+    const report = await response.json();
+    const url = URL.createObjectURL(
+      new Blob([JSON.stringify(report, null, 2)], { type: 'application/json' }),
+    );
+    const link = node('a');
+    link.href = url;
+    link.download = `codex-netwatch-diagnostics-${new Date().toISOString().slice(0, 10)}.json`;
+    link.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    toast(t('脱敏诊断已导出。仍含运行环境和汇总用量，分享前请检查。'));
+  } catch (error) {
+    toast(error.message);
+  } finally {
+    button.disabled = false;
   }
 });
 $('stopButton').addEventListener('click', async () => {

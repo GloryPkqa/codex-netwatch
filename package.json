@@ -1,6 +1,6 @@
 {
   "name": "codex-netwatch",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "private": true,
   "description": "Local-first Codex network observability through Mihomo, with honest session correlation.",
   "type": "module",
@@ -12,7 +12,10 @@
     "demo": "node --disable-warning=ExperimentalWarning src/main.mjs --demo",
     "doctor": "node --disable-warning=ExperimentalWarning scripts/doctor.mjs",
     "test": "node scripts/test.mjs",
-    "check": "node scripts/check.mjs"
+    "check": "node scripts/check.mjs",
+    "stability": "node --disable-warning=ExperimentalWarning scripts/stability.mjs",
+    "package:windows": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/package-windows.ps1",
+    "test:portable": "node desktop/smoke.mjs"
   },
   "license": "MIT"
 }
