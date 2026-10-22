@@ -1,0 +1,10 @@
+{
+  "port": 43128,
+  "controller": "auto",
+  "codexHome": "",
+  "intervalMs": 1000,
+  "retentionDays": 30,
+  "alertMBPerMinute": 100,
+  "includeDescendants": true,
+  "processNames": ["codex", "codex.exe", "codex-code-mode-host.exe", "codex-computer-use-swift.exe"]
+}

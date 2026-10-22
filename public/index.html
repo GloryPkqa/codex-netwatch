@@ -1,0 +1,268 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Codex Netwatch · 本地流量监控</title>
+    <link rel="icon" href="/icon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="/style.css" />
+    <script src="/app.js" defer></script>
+  </head>
+  <body>
+    <aside class="sidebar">
+      <a class="brand" href="#overview"
+        ><img src="/icon.svg" width="34" height="34" alt="" /><span
+          >codex<span class="brand-light">netwatch</span><small>LOCAL OBSERVABILITY</small></span
+        ></a
+      >
+      <div class="nav-label">工作空间</div>
+      <nav aria-label="主导航">
+        <a class="nav-link active" href="#overview"><span>◫</span> 流量总览</a>
+        <a class="nav-link" href="#connections"><span>⇄</span> 连接与去向</a>
+        <a class="nav-link" href="#sessions"><span>◷</span> 会话活动</a>
+        <a class="nav-link" href="#diagnostics"><span>⌁</span> 采集诊断</a>
+      </nav>
+      <div class="sidebar-bottom">
+        <span class="local-dot"></span> 数据只保存在本机
+        <p>无云端 · 无遥测 · 无外部资源</p>
+        <span class="version">v0.1.0 / MIHOMO ADAPTER</span>
+      </div>
+    </aside>
+    <main>
+      <header class="topbar">
+        <span>个人监控台 <span class="slash">/</span> <strong>Codex</strong></span>
+        <div class="top-actions">
+          <span class="status-pill" id="statusPill"
+            ><i></i><span id="statusText">正在连接</span></span
+          ><button class="icon-button" id="settingsButton" aria-label="打开监控设置">
+            ⚙ 设置
+          </button>
+        </div>
+      </header>
+      <section id="overview" class="page-heading">
+        <div>
+          <div class="eyebrow">KNOW WHERE YOUR BYTES GO</div>
+          <h1>流量，看得清。</h1>
+          <p>从进程到连接，找出 Codex 的网络开销。</p>
+        </div>
+        <div class="range-controls">
+          <label class="sr-only" for="range">统计时间范围</label
+          ><select id="range">
+            <option value="15m">最近 15 分钟</option>
+            <option value="1h" selected>最近 1 小时</option>
+            <option value="24h">最近 24 小时</option>
+            <option value="7d">最近 7 天</option>
+            <option value="30d">最近 30 天</option>
+            <option value="all">全部已记录</option>
+            <option value="custom">自定义时间…</option></select
+          ><button id="exportButton" class="button secondary">↓ 导出 CSV</button>
+        </div>
+      </section>
+      <div id="customRange" class="custom-range" hidden>
+        <label>开始 <input id="fromTime" type="datetime-local" /></label
+        ><label>结束 <input id="toTime" type="datetime-local" /></label
+        ><button id="applyRange" class="button">应用</button>
+      </div>
+      <div id="banner" class="banner" role="status" hidden></div>
+      <section class="metrics" aria-label="流量指标">
+        <article class="metric primary">
+          <div class="metric-label">Codex 已观测流量 <span class="tiny-tag">进程识别</span></div>
+          <div class="metric-value" id="totalBytes">—</div>
+          <div class="metric-foot">
+            <span>↑ <b id="upBytes">—</b></span
+            ><span>↓ <b id="downBytes">—</b></span>
+          </div>
+        </article>
+        <article class="metric">
+          <div class="metric-label">当前传输速度 <span class="live-indicator"></span></div>
+          <div class="metric-value" id="speed">—</div>
+          <div class="metric-foot">
+            <span>↑ <b id="upRate">—</b></span
+            ><span>↓ <b id="downRate">—</b></span>
+          </div>
+        </article>
+        <article class="metric">
+          <div class="metric-label">全部代理流量 <span class="tiny-tag neutral">对照</span></div>
+          <div class="metric-value" id="allBytes">—</div>
+          <div class="metric-foot" id="share">等待采样</div>
+        </article>
+        <article class="metric">
+          <div class="metric-label">当前 Codex 连接</div>
+          <div class="metric-value" id="codexConnections">—</div>
+          <div class="metric-foot" id="unknownConnections">进程匹配准备中</div>
+        </article>
+      </section>
+      <div class="split-grid">
+        <section class="panel trend-panel">
+          <div class="panel-heading">
+            <div>
+              <h2>传输趋势</h2>
+              <p>Codex 上传与下载 · <span id="rangeLabel">等待数据</span></p>
+            </div>
+            <div class="legend">
+              <span class="legend-up">上传</span><span class="legend-down">下载</span
+              ><span class="legend-all">全部代理</span>
+            </div>
+          </div>
+          <div class="chart-wrap">
+            <canvas id="chart" role="img" aria-label="流量速率趋势图"></canvas>
+            <div id="chartEmpty" class="chart-empty">
+              等待第一组采样<br /><small>已有连接会先建立基线，再累计新流量。</small>
+            </div>
+          </div>
+          <div class="chart-footer">
+            <span id="chartHint">悬停查看采样值</span><span>GB = 10⁹ 字节</span>
+          </div>
+        </section>
+        <section class="panel">
+          <div class="panel-heading">
+            <div>
+              <h2>流量去向</h2>
+              <p id="domainCaption">当前筛选范围内的目标地址</p>
+            </div>
+            <span class="small-muted">TOP 8</span>
+          </div>
+          <div id="domains" class="domains"><p class="empty">暂无已观测流量</p></div>
+        </section>
+      </div>
+      <section class="panel" id="connections">
+        <div class="panel-heading connection-heading">
+          <div>
+            <h2>连接与去向</h2>
+            <p>字节来自 Mihomo 连接计数，归属来自进程证据。</p>
+          </div>
+          <div class="filters">
+            <label class="sr-only" for="scope">进程筛选</label
+            ><select id="scope">
+              <option value="codex">Codex 进程</option>
+              <option value="unknown">待识别进程</option>
+              <option value="other">其他进程</option>
+              <option value="all">全部连接</option></select
+            ><input id="search" placeholder="搜索地址或进程…" aria-label="搜索连接" />
+          </div>
+        </div>
+        <div class="table-scroll">
+          <table>
+            <thead>
+              <tr>
+                <th>目标地址</th>
+                <th>进程 / PID</th>
+                <th>识别证据</th>
+                <th class="number">上传</th>
+                <th class="number">下载</th>
+                <th class="number">合计</th>
+                <th>最近观测</th>
+              </tr>
+            </thead>
+            <tbody id="connectionRows"></tbody>
+          </table>
+        </div>
+        <div class="table-footer">
+          最多展示流量最大的 100 条连接 · CSV 最多 10,000 条 · 筛选仅影响连接与去向
+        </div>
+      </section>
+      <section class="panel" id="sessions">
+        <div class="panel-heading connection-heading">
+          <div>
+            <h2>会话活动 <span class="tiny-tag amber">时间关联 ≠ 字节归属</span></h2>
+            <p>用日志活动缩小排查范围。共享进程与连接时，无法精确分配各会话的 GB。</p>
+          </div>
+          <div class="filters">
+            <input id="sessionSearch" placeholder="搜索会话名称…" aria-label="搜索会话" /><select
+              id="sessionLimit"
+              aria-label="显示会话数量"
+            >
+              <option value="20">最近 20 个</option>
+              <option value="50">最近 50 个</option>
+              <option value="200">最近 200 个</option>
+            </select>
+          </div>
+        </div>
+        <div class="table-scroll">
+          <table>
+            <thead>
+              <tr>
+                <th>会话</th>
+                <th>模型</th>
+                <th class="number">日志累计 token</th>
+                <th class="number">监控期间 token 增量</th>
+                <th>最近日志活动</th>
+                <th>关联观察</th>
+              </tr>
+            </thead>
+            <tbody id="sessionRows"></tbody>
+          </table>
+        </div>
+        <div class="table-footer">
+          Token 读取最近日志计数，包含缓存输入；不换算 GB
+          或订阅额度。缺失计数显示「—」。监控期间增量为所有已记录时段，独立于上方网络时间筛选。
+        </div>
+      </section>
+      <section id="diagnostics" class="diagnostics-grid">
+        <article class="panel">
+          <div class="panel-heading">
+            <div>
+              <h2>采集诊断</h2>
+              <p>了解数据覆盖范围与监控状态</p>
+            </div>
+          </div>
+          <dl id="diagnosticList" class="diagnostic-list"></dl>
+        </article>
+        <article class="panel">
+          <div class="panel-heading">
+            <div>
+              <h2>流量提醒</h2>
+              <p>最近 60 秒 Codex 流量超过阈值时记录</p>
+            </div>
+            <button id="notifyButton" class="button secondary small">桌面提醒</button>
+          </div>
+          <div id="alerts" class="alerts"><p class="empty">暂时没有阈值提醒</p></div>
+        </article>
+      </section>
+      <div class="method-note">
+        <strong>统计口径</strong>
+        <p>
+          仅覆盖经过当前 Mihomo 的连接，是应用层已观测字节，不等同于 VPN
+          账单或网卡流量。短连接、采样间隙和连接关闭前的最后一段可能漏计；首次连接、重连和程序重启先建立基线，不补算离线流量。未识别的流量单独保留，绝不按域名或
+          token 猜测会话用量。
+        </p>
+      </div>
+      <footer class="footer">
+        <span>CODEX NETWATCH <span class="footer-divider">/</span> LOCAL FIRST</span
+        ><span id="updatedAt">正在初始化</span>
+      </footer>
+    </main>
+    <dialog id="settingsDialog">
+      <form id="settingsForm">
+        <div class="dialog-heading">
+          <h2>监控设置</h2>
+          <button type="button" id="closeSettings" class="icon-button" aria-label="关闭">✕</button>
+        </div>
+        <label for="threshold">流量提醒阈值 <span>MB / 最近 60 秒</span></label
+        ><input id="threshold" type="number" min="0.1" max="1000000" step="0.1" required />
+        <p class="help">十进制 MB。阈值仅用于提醒，不会终止连接或会话。</p>
+        <div class="settings-note">
+          接口地址、采样周期、保留天数及子进程范围可在
+          <code>config.local.json</code> 中设置，修改后重启生效。接口密钥通过
+          <code>MIHOMO_SECRET</code> 环境变量提供。
+        </div>
+        <div class="dialog-actions"><button class="button" type="submit">保存设置</button></div>
+        <div class="stop-section">
+          <div>
+            <strong>停止后台采集</strong>
+            <p>关闭网页不会停止采集，点击此处才会退出程序。</p>
+          </div>
+          <button id="stopButton" type="button" class="button danger">停止监控</button>
+        </div>
+      </form>
+    </dialog>
+    <dialog id="correlationDialog">
+      <div class="dialog-heading">
+        <h2>会话关联观察</h2>
+        <button id="closeCorrelation" class="icon-button" aria-label="关闭">✕</button>
+      </div>
+      <div id="correlationContent"></div>
+    </dialog>
+    <div id="toast" class="toast" role="status" hidden></div>
+  </body>
+</html>
