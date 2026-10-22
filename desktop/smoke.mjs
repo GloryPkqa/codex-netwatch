@@ -94,7 +94,13 @@ try {
   await command('--stop');
   await until(async () => !(await health()), 'Tray stop did not stop collector');
   assert.equal(host.exitCode, null, 'Stopping collector must retain the tray');
-  assert.equal(fs.existsSync(path.join(data, 'demo', 'collector.lock')), false);
+  // Closing the listening socket precedes the process-exit lock cleanup.
+  // Wait for that separate completion condition before attempting a restart.
+  await until(
+    () => !fs.existsSync(path.join(data, 'demo', 'collector.lock')),
+    'Stopped collector did not release its data-directory lock',
+    6000,
+  );
   await command('--start');
   await until(
     async () => (await health())?.desktopInstance === first.desktopInstance,
@@ -105,7 +111,11 @@ try {
   await exit;
   assert.equal(host.exitCode, 0);
   await until(async () => !(await health()), 'Exiting tray left collector running');
-  assert.equal(fs.existsSync(path.join(data, 'demo', 'collector.lock')), false);
+  await until(
+    () => !fs.existsSync(path.join(data, 'demo', 'collector.lock')),
+    'Exited collector did not release its data-directory lock',
+    6000,
+  );
 
   let stopRequests = 0;
   const foreign = http.createServer((req, res) => {
