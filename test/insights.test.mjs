@@ -184,6 +184,17 @@ test('repeated controller failures persist one open gap and recovery baselines o
   assert.equal(monitor.status().diagnostics.reconnects, 1);
 });
 
+test('backwards clock adjustment does not suppress new threshold alerts until the old time returns', async (t) => {
+  const { store } = setup(t);
+  const { tick } = controlledMonitor(t, store);
+  await tick();
+  await tick({ add: 2000000 });
+  assert.equal(store.alerts().length, 1);
+  await tick({ advance: -50000 });
+  await tick({ add: 2000000 });
+  assert.equal(store.alerts().length, 2);
+});
+
 test('sampling delays, source changes and backward clocks establish fresh baselines', async (t) => {
   const { store } = setup(t);
   const { monitor, tick } = controlledMonitor(t, store);

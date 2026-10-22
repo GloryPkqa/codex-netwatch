@@ -79,6 +79,7 @@ export class Monitor {
       if (this.lastAt && now < this.lastAt) {
         this.intervalGap('clock_changed', now, this.lastAt);
         this.resetBaseline();
+        this.lastAlert = 0;
       } else if (
         this.lastAt &&
         !this.gaps.has('source_unavailable') &&
@@ -106,7 +107,12 @@ export class Monitor {
       ])
         this.closeGap(reason, now);
       if (!this.config.demo) {
-        const observerReady = this.observer.status === 'ready' && now - this.observer.at <= 6000;
+        const observerAge = now - this.observer.at;
+        const observerReady =
+          this.observer.status === 'ready' &&
+          this.observer.at > 0 &&
+          observerAge >= 0 &&
+          observerAge <= 6000;
         if (observerReady) this.closeGap('observer_unavailable', now);
         else if (now - this.startedAt >= 6000) this.openGap('observer_unavailable', now);
       }
@@ -151,7 +157,10 @@ export class Monitor {
       this.recent.push(sample);
       this.recent = this.recent.filter((x) => x.at >= now - 60000);
       const bytes = this.recent.reduce((n, x) => n + x.codexUp + x.codexDown, 0);
-      if (bytes >= this.alertMBPerMinute * 1000000 && now - this.lastAlert >= 60000) {
+      if (
+        bytes >= this.alertMBPerMinute * 1000000 &&
+        (!this.lastAlert || now - this.lastAlert >= 60000)
+      ) {
         this.store.alert(
           now,
           `Codex 最近 60 秒已观测到 ${(bytes / 1000000).toFixed(1)} MB，超过 ${this.alertMBPerMinute} MB 提醒阈值。`,

@@ -2,6 +2,12 @@
 
 Validation recorded on 2026-10-22. These results describe the tested workload and host, not an accuracy guarantee for every proxy or Windows installation.
 
+## v0.2.4 review fixes
+
+- Regression tests cover rejecting socket evidence timestamped after the current clock, retaining independent proxy identity, accepting fresh replacement evidence, and resuming threshold alerts after a backwards clock change.
+- Desktop GUI smoke additionally verifies the sidebar link targets the public `GloryPkqa/codex-netwatch` repository.
+- The review retains the existing read-only proxy integration, separate Codex/other/unknown accounting and paused long-run validation.
+
 ## v0.2.3 scope and UI clarity
 
 - All 78 automated tests and syntax checks passed locally, including a case where 25 unrelated apps transfer more bytes than Codex. The separate Codex ranking still returns the smaller Codex process.

@@ -36,6 +36,18 @@ test('stale process snapshots cannot identify new connections', () => {
   o.at = 1000;
   assert.equal(o.classify({ sourcePort: 5, network: 'tcp' }, 8000), null);
 });
+
+test('a snapshot from before a backwards clock adjustment cannot identify new connections', () => {
+  const observer = new ProcessObserver(config);
+  observer.at = 20000;
+  observer.processes.set(1, { pid: 1, name: 'codex.exe', ppid: 0 });
+  observer.sockets.set('tcp:5000', [{ ip: '127.0.0.1', port: 5000, pid: 1 }]);
+  const metadata = { network: 'tcp', sourceIP: '127.0.0.1', sourcePort: 5000 };
+  assert.equal(observer.classify(metadata, 10000), null);
+  assert.equal(observer.classify({ ...metadata, process: 'chrome.exe' }, 10000).scope, 'other');
+  observer.at = 10000;
+  assert.equal(observer.classify(metadata, 10001).scope, 'codex');
+});
 test('a browser talking to ChatGPT remains a browser', () => {
   const o = new ProcessObserver(config);
   assert.equal(o.classify({ process: 'chrome.exe', host: 'chatgpt.com' }).scope, 'other');

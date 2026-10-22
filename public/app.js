@@ -178,7 +178,13 @@ function render(data) {
     ? t('当前为演示模式，全部流量为合成数据，与真实监控数据库分开保存。')
     : t(s.error) ||
       (s.observer !== 'ready'
-        ? t('正在准备 Windows 进程识别。缺少证据的连接暂列为「待识别」，不计入 Codex。')
+        ? t(
+            s.observer === 'unsupported'
+              ? '当前平台不支持套接字识别；仍可使用代理提供的进程信息。缺少证据的流量列为待识别。'
+              : ['error', 'stopped'].includes(s.observer)
+                ? 'Windows 进程识别暂不可用，正在重试。缺少证据的流量列为待识别，不计入 Codex。'
+                : '正在准备 Windows 进程识别。缺少证据的连接暂列为「待识别」，不计入 Codex。',
+          )
         : t('有 {count} 条连接缺少进程证据，可在「连接与去向」切换到「待识别进程」排查。', {
             count: s.unknownConnections,
           }));
@@ -710,9 +716,12 @@ $('chart').addEventListener('mouseleave', () => {
 new ResizeObserver(() => drawChart()).observe($('chart'));
 const startupBridge = createStartupBridge(window.chrome?.webview);
 let startupEnabled = false,
+  startupAvailable = false,
   startupSequence = 0;
 function renderStartupState() {
-  $('startupState').textContent = t(startupEnabled ? '自启开启' : '自启关闭');
+  $('startupState').textContent = t(
+    startupAvailable ? (startupEnabled ? '自启开启' : '自启关闭') : '暂不可用',
+  );
   $('startupToggle').setAttribute('aria-checked', String(startupEnabled));
 }
 async function refreshStartup() {
@@ -723,11 +732,16 @@ async function refreshStartup() {
     const enabled = await startupBridge.get();
     if (sequence !== startupSequence) return;
     startupEnabled = enabled;
+    startupAvailable = true;
     $('desktopSettings').hidden = false;
     renderStartupState();
     $('startupToggle').disabled = false;
   } catch {
-    /* Unsupported desktop hosts leave this desktop-only setting hidden. */
+    if (sequence !== startupSequence) return;
+    // An unavailable native host is not an OFF preference. Leave unsupported
+    // hosts hidden, but make a previously visible setting's failure explicit.
+    startupAvailable = false;
+    if (!$('desktopSettings').hidden) renderStartupState();
   }
 }
 $('startupToggle').addEventListener('click', async () => {
@@ -738,9 +752,11 @@ $('startupToggle').addEventListener('click', async () => {
     const enabled = await startupBridge.set(!startupEnabled);
     if (sequence !== startupSequence) return;
     startupEnabled = enabled;
+    startupAvailable = true;
     renderStartupState();
   } catch {
     toast(t('无法更新开机自启，请重试。'));
+    await refreshStartup();
   } finally {
     if (sequence === startupSequence) $('startupToggle').disabled = false;
   }

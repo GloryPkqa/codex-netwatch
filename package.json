@@ -1,6 +1,6 @@
 {
   "name": "codex-netwatch",
-  "version": "0.2.3",
+  "version": "0.2.4",
   "private": true,
   "description": "Local-first Codex network observability through Mihomo, with honest session correlation.",
   "type": "module",

@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.2.4 — 2026-10-22
+
+- Replace the sidebar's technical adapter label with a `codex-netwatch` link to the public project repository.
+- Reject future-dated socket ownership snapshots after a backwards clock adjustment, while preserving valid controller-provided process identity.
+- Reset threshold-alert cooldown on backwards clock changes so subsequent measured bursts can still notify.
+- Distinguish unsupported or temporarily failed process identification from startup-in-progress in bilingual UI messages.
+- Show an unavailable startup preference honestly after native-channel errors, refresh it after failed writes, and preserve that state when switching languages.
+
 ## 0.2.3 — 2026-10-22
 
 - Default process rankings to identified Codex processes and children; provide an explicit all-proxied-app comparison with a scope-specific title, explanation and empty state in both languages.

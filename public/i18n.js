@@ -1,6 +1,11 @@
 // Source-language keys keep the Chinese copy next to its English translation.
 // Values are plain text: never inject translations as HTML.
 export const messages = Object.freeze({
+  暂不可用: 'Unavailable',
+  '当前平台不支持套接字识别；仍可使用代理提供的进程信息。缺少证据的流量列为待识别。':
+    'Socket ownership is unavailable on this platform. Proxy process metadata still works; traffic without evidence stays unidentified.',
+  'Windows 进程识别暂不可用，正在重试。缺少证据的流量列为待识别，不计入 Codex。':
+    'Windows process identification is unavailable and retrying. Traffic without evidence stays unidentified and is excluded from Codex.',
   'Codex 进程流量排行': 'Codex traffic by process',
   全部代理进程流量排行: 'All proxy traffic by process',
   '仅显示已识别的 Codex 进程及子进程，按上传与下载合计排序，最多 8 项。':

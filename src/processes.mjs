@@ -117,7 +117,8 @@ export class ProcessObserver {
       named = { scope: matched ? 'codex' : 'other', evidence: 'mihomo', process: name, pid: null };
       if (matched) return named;
     }
-    if (now - this.at > 6000) return named;
+    const age = now - this.at;
+    if (!this.at || age < 0 || age > 6000) return named;
     const rows =
       this.sockets.get(`${String(metadata.network).toLowerCase()}:${metadata.sourcePort}`) || [];
     const clean = (x) => String(x).replace(/^::ffff:/, '');

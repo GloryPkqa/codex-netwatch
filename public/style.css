@@ -131,9 +131,17 @@ button:disabled {
   margin-right: 7px;
 }
 .version {
-  font-size: 9px;
+  font-size: 10px;
   color: #647069;
   letter-spacing: 0.5px;
+}
+.version-link {
+  color: #acbdb2;
+}
+.version-link:hover {
+  color: var(--mint);
+  text-decoration: underline;
+  text-underline-offset: 3px;
 }
 main {
   margin-left: 220px;

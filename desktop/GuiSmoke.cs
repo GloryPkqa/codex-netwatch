@@ -16,8 +16,9 @@ internal static class NetwatchGuiSmoke
         output = args[2];
         List<string> failures = new List<string>();
         bool startupEnabled = false;
+        bool simulateStartupFailure = false;
         DashboardWindow window = new DashboardWindow(args[0], args[1], delegate { }, delegate(string error) { failures.Add(error); },
-            delegate { return startupEnabled; }, delegate(bool enabled) { startupEnabled = enabled; });
+            delegate { if (simulateStartupFailure) throw new InvalidOperationException("Synthetic preference read failure"); return startupEnabled; }, delegate(bool enabled) { startupEnabled = enabled; });
         window.Shown += async delegate {
             try
             {
@@ -32,6 +33,8 @@ internal static class NetwatchGuiSmoke
                 }
                 if (!loaded) throw new Exception("Dashboard data did not render in WebView2.");
                 if (failures.Count != 0) throw new Exception("WebView2 initialization failed.");
+                if (await window.Browser.CoreWebView2.ExecuteScriptAsync("document.querySelector('.version-link')?.href === 'https://github.com/GloryPkqa/codex-netwatch' && document.querySelector('.version-link').textContent.includes('codex-netwatch')") != "true")
+                    throw new Exception("Sidebar project link is missing or points to the wrong repository.");
                 if (await window.Browser.CoreWebView2.ExecuteScriptAsync("document.querySelector('#processScope').value === 'codex' && !document.querySelector('#processRows').textContent.includes('browser.exe') && document.querySelector('#processRows').textContent.includes('codex.exe')") != "true")
                     throw new Exception("Process ranking did not default to Codex only.");
                 await window.Browser.CoreWebView2.ExecuteScriptAsync("document.querySelector('#processScope').value='all'; document.querySelector('#processScope').dispatchEvent(new Event('change'))");
@@ -51,6 +54,24 @@ internal static class NetwatchGuiSmoke
                 await window.Browser.CoreWebView2.ExecuteScriptAsync("document.querySelector('#startupToggle').click()");
                 await Task.Delay(250);
                 if (startupEnabled) throw new Exception("Settings startup switch did not disable the preference.");
+                simulateStartupFailure = true;
+                await window.Browser.CoreWebView2.ExecuteScriptAsync("document.querySelector('#closeSettings').click(); document.querySelector('#settingsButton').click()");
+                deadline = DateTime.UtcNow.AddSeconds(5);
+                bool unavailable = false;
+                while (DateTime.UtcNow < deadline) {
+                    if (await window.Browser.CoreWebView2.ExecuteScriptAsync("document.querySelector('#startupToggle').disabled && ['暂不可用','Unavailable'].includes(document.querySelector('#startupState').textContent)") == "true") { unavailable = true; break; }
+                    await Task.Delay(100);
+                }
+                if (!unavailable) throw new Exception("Unavailable startup state was not shown.");
+                await window.Browser.CoreWebView2.ExecuteScriptAsync("document.querySelector('#language').value='en'; document.querySelector('#language').dispatchEvent(new Event('change'));");
+                if (await window.Browser.CoreWebView2.ExecuteScriptAsync("document.querySelector('#startupState').textContent") != "\"Unavailable\"")
+                    throw new Exception("Language switch replaced an unavailable startup state with an OFF preference.");
+                simulateStartupFailure = false;
+                await window.Browser.CoreWebView2.ExecuteScriptAsync("document.querySelector('#closeSettings').click(); document.querySelector('#settingsButton').click()");
+                deadline = DateTime.UtcNow.AddSeconds(5);
+                while (DateTime.UtcNow < deadline && await window.Browser.CoreWebView2.ExecuteScriptAsync("document.querySelector('#startupToggle').disabled") == "true") await Task.Delay(100);
+                if (await window.Browser.CoreWebView2.ExecuteScriptAsync("document.querySelector('#startupToggle').disabled") != "false")
+                    throw new Exception("Startup setting did not recover after retry.");
                 await window.Browser.CoreWebView2.ExecuteScriptAsync("document.querySelector('#closeSettings').click()");
                 await window.Browser.CoreWebView2.ExecuteScriptAsync("document.querySelector('#language').value='en'; document.querySelector('#language').dispatchEvent(new Event('change'));");
                 await Task.Delay(350);
