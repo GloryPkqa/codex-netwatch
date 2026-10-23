@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.3.1 — 2026-10-23
+
+- Drain the first native interval when switching from proxy capture. This prevents a helper started during an in-flight controller request from counting the same cutover bytes twice; the cutover remains visible as a collection gap.
+
 ## 0.3.0 — 2026-10-23
 
 - Add Windows ETW native TCP/UDP capture for direct traffic, IPv4/IPv6 and short-lived connections; a proxy is optional.

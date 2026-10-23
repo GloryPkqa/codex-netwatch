@@ -62,6 +62,11 @@ test('automatic capture selects one source and never doubles proxy plus native b
   await source.setMode('mihomo');
   assert.equal((await source.snapshot()).uploadTotal, 999);
   assert.equal(source.generation, generation + 1); assert.equal(proxyCalls, 1);
+  await source.setMode('native');
+  const cutover = await source.snapshot();
+  assert.equal(cutover.uploadTotal, 0); assert.equal(cutover.cutoverBaseline, true);
+  assert.deepEqual(cutover.connections, []);
+  assert.equal((await source.snapshot()).uploadTotal, 1200);
 });
 test('automatic fallback never opens UAC, and explicit native mode never silently uses proxy counters', async () => {
   const source = new TrafficSource({ captureMode: 'auto' });

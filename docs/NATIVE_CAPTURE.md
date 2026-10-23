@@ -23,7 +23,7 @@ The header and diagnostics show the active source. The selected mode is saved in
 - Show destination IP addresses, not guessed hostnames. No reverse DNS request, TLS interception or packet-payload collection is performed.
 - Use process creation times to reject stale ownership after PID reuse. Process ancestry supplements event evidence; a short-lived unknown process can remain unidentified if no reliable ancestry was observed.
 - Exclude this monitor's own known process tree from Codex attribution, including when a developer launches Netwatch from Codex.
-- Use only one source for any sample. ETW and Mihomo totals are never added together for the same interval. Switching sources marks a gap and resets cumulative baselines where appropriate. A historical range may contain different measurement methods.
+- Use only one source for any sample. ETW and Mihomo totals are never added together for the same interval. Switching from proxy to native drains the first native window as a cutover baseline, preventing overlap with an in-flight controller request. That discarded window remains visible as a gap. Switching sources also resets cumulative baselines where appropriate. A historical range may contain different measurement methods.
 - Record ETW event/buffer loss and bounded aggregation overflow as collection gaps. Missing events and offline traffic are never reconstructed.
 - Session activity and local-log token counts remain independent clues. Shared processes cannot be split precisely into per-conversation GB. Tokens are not subscription balance or billing.
 

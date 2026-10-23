@@ -19,7 +19,11 @@ export class TrafficSource {
       this.issue = this.native.issue || 'elevation_required'; throw new Error(this.issue);
     }
     try {
-      const result = await source.snapshot();
+      let result = await source.snapshot();
+      // The helper can start while an old proxy request is still in flight.
+      // Drain its first interval at cutover instead of overlapping byte sources.
+      if (source === this.native && this.active && this.active !== source)
+        result = { ...result, uploadTotal: 0, downloadTotal: 0, connections: [], cutoverBaseline: true };
       const key = `${source === this.native ? 'native' : 'mihomo'}:${source.generation}`;
       if (key !== this.key) { this.generation++; this.key = key; }
       this.active = source; this.eventsLost = result.eventsLost || 0; this.issue = null; return result;
