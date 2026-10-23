@@ -63,7 +63,9 @@ node --disable-warning=ExperimentalWarning src/main.mjs
 
 ## 配置与排错
 
-先查看页面顶部“连接帮助”，里面有当前状态、操作步骤和手动配置示例；采集器会自动重试。支持自动发现部分 Clash Verge 配置及 Windows 命名管道，其他兼容接口可手动配置。应填写控制接口端口，不是 HTTP / SOCKS 代理端口。复制 `config.example.json` 为 `config.local.json` 后编辑，完整退出并重新启动生效。
+先在“设置 → 流量采集方式”选择自动、Windows 原生或 Mihomo。直连采集需点击“授权原生采集”，仅提升采集助手；退出后授权结束，开机自启不自动弹出管理员提示。自动模式优先使用可用的已授权原生助手，否则尝试 Mihomo。
+
+页面顶部“连接帮助”提供当前状态、操作步骤和手动配置示例；采集器会自动重试。Mihomo 模式支持自动发现部分 Clash Verge 配置及 Windows 命名管道，其他兼容接口可手动配置。应填写控制接口端口，不是 HTTP / SOCKS 代理端口。复制 `config.example.json` 为 `config.local.json` 后编辑，完整退出并重新启动生效。
 
 支持 `CODEX_FLOW_CONTROLLER`、`MIHOMO_SECRET`、`CODEX_HOME`、`CODEX_FLOW_PORT` 和 `CODEX_FLOW_DATA_DIR` 环境变量。
 

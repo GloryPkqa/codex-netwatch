@@ -1,6 +1,15 @@
-# Preview validation
+# Validation records
 
-Validation recorded on 2026-10-22. These results describe the tested workload and host, not an accuracy guarantee for every proxy or Windows installation.
+Latest validation recorded on 2026-10-23. These results describe the tested workload and host, not an accuracy guarantee for every capture source or Windows installation. Older entries retain their original scope.
+
+## v0.3.1 native capture and source switching
+
+- [CI run 39906895995](https://github.com/GloryPkqa/codex-netwatch/actions/runs/39906895995) tested commit `7cec8eafb4910e1ac97c8fcb41170551ebd21e69`. Windows passed all 89 tests with no failures or skips; Linux regression and packaged Windows lifecycle jobs also passed.
+- Elevated Windows integration tests captured known direct TCP upload/download and a UDP exchange from a separate Codex-named process. The TCP test also verified that stopping the helper removed its private ETW session. These are controlled loopback transfers, not a real-world internet billing comparison.
+- Parser tests cover TCP/UDP IPv4/IPv6 records, payload process IDs and excluding retransmit/copy notifications. Source-switch regression checks verify that the first native cutover interval is drained after another active source, preventing overlapping byte windows.
+- The unelevated local host did not run live native capture. Native integration tests explicitly skip without elevation unless CI requires them; a skip is not reported as a successful native capture test. Automatic mode locally remained connected through Mihomo while native authorization was pending.
+- Release assets were checked against their local SHA-256 digests. After the local portable upgrade, every previously recorded sample and the upload/download aggregates through the backup's last timestamp were preserved, and collection resumed.
+- No 24/72-hour validation was resumed or completed. See [native capture scope and permissions](NATIVE_CAPTURE.md) for loopback counting, IP destinations, per-run authorization and measurement gaps.
 
 ## v0.2.6 connection guidance and repository presentation
 
