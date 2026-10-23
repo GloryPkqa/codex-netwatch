@@ -70,6 +70,8 @@ export function createDiagnostics(config, store, monitor, now = Date.now()) {
       sessionReader: state(status.sessionReader),
       transport: config.demo
         ? 'synthetic'
+        : status.capture?.active === 'native'
+          ? 'windows_etw'
         : status.endpoint?.includes('命名管道')
           ? 'named_pipe'
           : status.endpoint
@@ -81,6 +83,9 @@ export function createDiagnostics(config, store, monitor, now = Date.now()) {
       identifiedCodexConnections: numeric(status.codexConnections),
       unidentifiedConnections: numeric(status.unknownConnections),
       processCount: numeric(status.processes),
+      captureMode: ['auto','native','mihomo'].includes(status.capture?.mode) ? status.capture.mode : null,
+      nativeState: state(status.capture?.nativeState),
+      nativeEventsLost: numeric(status.capture?.eventsLost),
       resources,
     },
     storage: { schema, integrity, bytes: numeric(databaseBytes) },

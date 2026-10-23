@@ -6,12 +6,13 @@
 
 ![实际使用中的流量总览、小时趋势和目标地址](docs/overview.en.png)
 
-**Windows 优先，需要运行中的 Mihomo / Clash 兼容控制接口。** 统计经过该代理、具有进程证据的 Codex 流量；绕过代理的流量不可见，共享连接无法精确拆成每个会话的 GB。
+**Windows 优先，支持直连和代理。** Windows 原生采集通过 ETW 记录 TCP/UDP 进程网络事件，不需要代理；也可选择 Mihomo / Clash 兼容接口。在设置中选择自动、Windows 原生或 Mihomo，原生采集需在 Windows 提示中授权管理员采集助手。共享连接仍不能精确拆成每个会话的 GB。
 
 ## 功能
 
 - 实时上传、下载和速率，本地历史、时间筛选及 CSV 导出。
-- 默认只显示 Codex 进程排行，可切换全部代理程序作对照。
+- 默认只显示 Codex 进程排行，可切换全部已观测程序作对照。
+- 支持原生 TCP/UDP、IPv4/IPv6 和短连接；采集源自动或手动选择，不叠加计数。
 - 突发上传 / 下载、持续上传及采集缺口记录。
 - 只读会话活动和 token 计数，与网络字节分开显示。
 - Windows 桌面 GUI、托盘、可选开机自启和浏览器入口。
@@ -23,8 +24,8 @@
 
 1. 从同一个 [Release](https://github.com/GloryPkqa/codex-netwatch/releases) 下载 `codex-netwatch-windows-x64.zip` 和 `SHA256SUMS.txt`。
 2. 核对 SHA-256，完整解压到可写目录。
-3. 在代理和 Codex 正常运行时，双击 `Codex-Netwatch.exe`。
-4. 按“连接帮助”检查状态，在 Codex 中发送新请求并等待两次采样；已有连接会先建立基线，再累计新流量。
+3. 双击 `Codex-Netwatch.exe` 并运行 Codex；代理可选。
+4. 直连时打开“设置 → 授权原生采集”，在 Windows 提示中允许管理员采集助手。自动模式优先使用已授权原生采集，否则尝试 Mihomo。然后让 Codex 产生新请求。
 
 ```powershell
 Get-FileHash .\codex-netwatch-windows-x64.zip -Algorithm SHA256
@@ -43,6 +44,7 @@ Get-FileHash .\codex-netwatch-windows-x64.zip -Algorithm SHA256
 ```powershell
 git clone https://github.com/GloryPkqa/codex-netwatch.git
 cd codex-netwatch
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/build-native.ps1
 node --disable-warning=ExperimentalWarning src/main.mjs
 ```
 
@@ -53,11 +55,11 @@ node --disable-warning=ExperimentalWarning src/main.mjs
 | 数据         | 含义                                                   |
 | ------------ | ------------------------------------------------------ |
 | Codex 流量   | 有进程证据的连接字节增量；不计入其他进程和待识别流量。 |
-| 全部代理流量 | 当前控制器的全局计数，包含其他应用。                   |
+| 全部已观测流量 | 原生进程网络事件或当前控制器的全局计数，包含其他应用。 |
 | 会话活动     | 日志活动与采样时间重合，**不是该会话的 GB 归属**。     |
 | token 计数   | 本地日志计数及已观测增量，**不是账单或订阅额度**。     |
 
-首次连接、重启、接口切换和重连先建立基线，不补算离线流量。快照采样可能漏掉短连接及关闭前的尾部字节；统计的是应用层字节，不等同于 VPN 账单或网卡流量。MB / GB 使用十进制单位。
+原生模式从助手启动后记录新事件，保留采样间关闭的短连接，包括本机回环连接；目标显示为 IP，不主动查询 DNS。ETW 缓冲丢失会标记缺口。Mihomo 快照可能漏掉短连接及关闭前尾部字节，并在首次连接、重连时建立基线。来源切换会留下缺口，历史可能包含不同统计口径。不补算离线流量，不等同于 VPN 账单或网卡总量。MB / GB 使用十进制单位。详见[原生采集说明](docs/NATIVE_CAPTURE.md)。
 
 ## 配置与排错
 

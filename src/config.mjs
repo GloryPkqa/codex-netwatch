@@ -8,6 +8,7 @@ export function loadConfig(root, env = process.env) {
   const config = {
     port: 43128,
     controller: 'auto',
+    captureMode: 'auto',
     codexHome: path.join(env.USERPROFILE || os.homedir(), '.codex'),
     intervalMs: 1000,
     retentionDays: 30,
@@ -24,12 +25,14 @@ export function loadConfig(root, env = process.env) {
   if (!config.codexHome) config.codexHome = path.join(env.USERPROFILE || os.homedir(), '.codex');
   if (env.CODEX_HOME) config.codexHome = env.CODEX_HOME;
   if (env.CODEX_FLOW_CONTROLLER) config.controller = env.CODEX_FLOW_CONTROLLER;
+  if (env.CODEX_NETWATCH_CAPTURE_MODE) config.captureMode = env.CODEX_NETWATCH_CAPTURE_MODE;
   if (env.CODEX_FLOW_PORT) config.port = Number(env.CODEX_FLOW_PORT);
   config.secret = env.MIHOMO_SECRET || '';
   config.desktopToken = env.CODEX_NETWATCH_DESKTOP_TOKEN || '';
   if (config.desktopToken && !/^[a-f0-9]{32,128}$/i.test(config.desktopToken))
     throw new Error('Invalid desktop instance marker');
   config.root = root;
+  config.excludePids = [process.pid, Number(env.CODEX_NETWATCH_HOST_PID)].filter((x) => Number.isSafeInteger(x) && x > 0);
   config.demo = process.argv.includes('--demo');
   const dataRoot = env.CODEX_FLOW_DATA_DIR
     ? path.resolve(env.CODEX_FLOW_DATA_DIR)
@@ -57,6 +60,7 @@ export function loadConfig(root, env = process.env) {
   if (typeof config.controller !== 'string' || !config.controller)
     throw new Error('controller must be a nonempty string');
   if (typeof config.codexHome !== 'string') throw new Error('codexHome must be a path string');
+  if (!['auto', 'native', 'mihomo'].includes(config.captureMode)) throw new Error('captureMode must be auto, native or mihomo');
   return config;
 }
 

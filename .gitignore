@@ -6,3 +6,5 @@ config.local.json
 coverage/
 .DS_Store
 Thumbs.db
+native/*.exe
+native/*.exe.config

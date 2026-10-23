@@ -17,7 +17,13 @@ jobs:
           node-version: '24'
           package-manager-cache: false
       - run: npm run check
+      - name: Build and verify native Windows capture helper
+        if: runner.os == 'Windows'
+        shell: powershell
+        run: powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/build-native.ps1
       - run: npm test
+        env:
+          NETWATCH_REQUIRE_NATIVE_TEST: ${{ runner.os == 'Windows' && '1' || '' }}
   portable-windows:
     runs-on: windows-latest
     steps:

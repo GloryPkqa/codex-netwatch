@@ -2,9 +2,9 @@
 
 ## 使用 / Usage
 
-下载 Release 中的 `codex-netwatch-windows-x64.zip`，核对 SHA-256，完整解压到有写入权限的目录，双击 `Codex-Netwatch.exe`，在独立桌面窗口显示与网页相同的面板。Windows 10/11 x64、.NET Framework 4.8 和 Microsoft Edge WebView2 Runtime 为运行环境；无需安装 Node.js、管理员权限或修改系统代理。缺少 WebView2 时，窗口提供微软官方下载链接及浏览器入口，不自动下载安装。
+下载 Release 中的 `codex-netwatch-windows-x64.zip`，核对 SHA-256，完整解压到有写入权限的目录，双击 `Codex-Netwatch.exe`，在独立桌面窗口显示与网页相同的面板。Windows 10/11 x64、.NET Framework 4.8 和 Microsoft Edge WebView2 Runtime 为运行环境；无需安装 Node.js 或修改系统代理；原生直连采集需在设置中授权管理员采集助手，Mihomo 模式无需管理员权限。缺少 WebView2 时，窗口提供微软官方下载链接及浏览器入口，不自动下载安装。
 
-Download the portable ZIP from Releases, verify its SHA-256, extract the whole folder to a writable location, then run `Codex-Netwatch.exe`. The shared dashboard opens in a desktop window. Windows 10/11 x64, .NET Framework 4.8 and Microsoft Edge WebView2 Runtime are required. Node.js is bundled; no administrator permission or system-proxy changes are needed. A missing-runtime screen links to Microsoft's download page and offers browser access; it never silently installs a runtime.
+Download the portable ZIP from Releases, verify its SHA-256, extract the whole folder to a writable location, then run `Codex-Netwatch.exe`. The shared dashboard opens in a desktop window. Windows 10/11 x64, .NET Framework 4.8 and Microsoft Edge WebView2 Runtime are required. Node.js is bundled; no system-proxy changes are needed. Native direct-traffic capture requires administrator authorization for its helper in Settings; Mihomo mode does not. A missing-runtime screen links to Microsoft's download page and offers browser access; it never silently installs a runtime.
 
 托盘菜单根据 Windows 界面语言显示中文或英文，可以打开桌面面板、在浏览器打开、启动/停止采集、打开数据目录及退出。关闭窗口会收进托盘，采集继续；隐藏时尝试挂起渲染器以减少开销，重新打开时恢复。退出会停止**本次托盘启动的**采集器。页面停止采集后托盘保留，可再次启动。检测到其他方式已启动的同模式监控时只打开页面，不接管或停止它。
 
@@ -22,7 +22,7 @@ The desktop Monitor settings dialog's Start with Windows switch and checked tray
 
 ## 配置 / Configuration
 
-`runtime/`、`src/`、`public/`、`scripts/` 必须保留在 EXE 旁边。首次运行在同目录创建 `data/`。复制 `config.example.json` 为 `config.local.json` 可配置 Mihomo controller、采样和保留天数；请勿把 secret 提交到 GitHub。环境变量与源码版相同，优先级高于本地配置。
+`runtime/`、`src/`、`public/`、`scripts/`、`native/` 必须保留在 EXE 旁边。首次运行在同目录创建 `data/`。复制 `config.example.json` 为 `config.local.json` 可配置 Mihomo controller、采样和保留天数；请勿把 secret 提交到 GitHub。环境变量与源码版相同，优先级高于本地配置。
 
 Keep the supporting folders and all three WebView2 DLLs beside the EXE. Data is created in `data/` next to it. The desktop browser profile (including language preference) is stored under `data/webview-profile/`, or under the selected demo/custom data directory; it is separate from your regular browser, while both views share the collector database. Copy `config.example.json` to `config.local.json` for collector settings. Existing environment variables also work and override local configuration; relative `CODEX_FLOW_DATA_DIR` paths resolve against the extracted folder. Never commit local secrets.
 

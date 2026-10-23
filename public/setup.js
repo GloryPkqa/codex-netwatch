@@ -3,6 +3,9 @@ export function setupState(status, totals = {}, unavailable = false) {
   if (unavailable) return 'offline';
   if (status?.demo) return 'demo';
   if (!status || status.state === 'starting') return 'starting';
+  if (status.capture?.active === 'native' && status.state === 'connected')
+    return totals.codex_up + totals.codex_down > 0 ? 'native_ready' : 'native_idle';
+  if (status.state !== 'connected' && status.capture?.nativeIssue && status.capture.mode !== 'mihomo') return 'native_authorization';
   if (status.state !== 'connected') {
     return ['authorization', 'incompatible', 'unreachable', 'collection'].includes(
       status.controllerIssue,
@@ -18,6 +21,9 @@ export function setupState(status, totals = {}, unavailable = false) {
 }
 
 export const setupCopy = Object.freeze({
+  native_authorization: ['直连采集尚未授权', '打开设置，选择自动或 Windows 原生模式并点击授权原生采集。无需启动代理；Windows 会请求管理员授权。'],
+  native_ready: ['正在记录直连与进程网络活动', 'Windows 原生采集正在工作，不需要代理。目标显示为 IP；本机回环连接也会计入进程网络活动，不代表互联网账单。'],
+  native_idle: ['Windows 原生采集已就绪', '在 Codex 中产生一个新请求。统计从原生采集启动后开始，离线流量不会补算。'],
   offline: [
     '本地监控程序未连接',
     '重新运行 Codex-Netwatch.exe 或启动脚本。这里连接的是监控程序，与代理控制接口是两层独立连接。',

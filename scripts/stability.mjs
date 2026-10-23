@@ -437,6 +437,7 @@ export async function runStability(options, sourceRoot = root) {
           CODEX_HOME: codexHome,
           CODEX_FLOW_DATA_DIR: dataDir,
           CODEX_FLOW_CONTROLLER: `http://127.0.0.1:${fixturePort}`,
+          CODEX_NETWATCH_CAPTURE_MODE: 'mihomo',
           CODEX_FLOW_PORT: String(monitorPort),
           MIHOMO_SECRET: '',
           CODEX_NETWATCH_DESKTOP_TOKEN: '',

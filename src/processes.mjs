@@ -104,6 +104,27 @@ export class ProcessObserver {
     }, 10000);
   }
   classify(metadata, now = Date.now()) {
+    if (metadata.native) {
+      const pid = Number(metadata.processId), owner = this.processes.get(pid);
+      // ETW supplies a PID even for a connection that closes between socket polls.
+      // Verify process creation time before using cached ancestry after PID reuse.
+      let p = owner;
+      const visited = new Set();
+      while (p && !visited.has(p.pid)) {
+        visited.add(p.pid);
+        if (this.config.excludePids?.includes(p.pid)) return { scope: 'other', evidence: 'etw', process: metadata.process || '', pid };
+        p = this.processes.get(p.ppid);
+      }
+      if (this.config.excludePids?.includes(pid)) return { scope: 'other', evidence: 'etw', process: metadata.process || '', pid };
+      const age = now - this.at;
+      if (owner && age >= 0 && age <= 6000 && metadata.processBorn > 0 && Math.abs(owner.born - metadata.processBorn) < 2) {
+        const result = classifyProcess(pid, this.processes, this.config);
+        if (result) return { ...result, evidence: result.evidence === 'descendant' ? 'etw_descendant' : 'etw' };
+      }
+      const matched = this.config.processNames.some((x) => x.toLowerCase() === normalizedName(metadata.process));
+      return metadata.process ? { scope: matched ? 'codex' : 'other', evidence: 'etw', process: metadata.process, pid }
+        : { scope: 'unknown', evidence: 'none', process: '', pid: null };
+    }
     // Prefer kernel connection metadata when present. An unrecognised named process
     // must remain "other", even if its hostname happens to be chatgpt.com.
     let named = null;

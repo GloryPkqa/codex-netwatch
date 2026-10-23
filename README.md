@@ -6,12 +6,13 @@ A local dashboard for Codex network usage, process attribution, and session acti
 
 ![Codex Netwatch showing recorded traffic, an hour of history and destinations](docs/overview.en.png)
 
-**Windows first. Requires a running Mihomo / Clash-compatible controller.** It measures observed proxy traffic, including identified Codex child processes. It cannot see traffic bypassing that controller or precisely split shared connections between chats.
+**Windows first. Direct connections and proxies are supported.** Windows native capture records TCP/UDP process network events without requiring a proxy. A Mihomo / Clash-compatible controller remains an alternative. Choose **Automatic**, **Windows native**, or **Mihomo** in Settings; authorize the native helper when Windows requests administrator permission. Shared connections cannot be split precisely between chats.
 
 ## Features
 
 - Live upload/download rates, local history, time filters, and CSV export.
-- Codex-only process rankings by default, with an explicit all-proxied-app comparison.
+- Codex-only process rankings by default, with an explicit all-observed-process comparison.
+- Windows ETW capture for direct TCP/UDP, IPv4/IPv6 and short-lived connections; automatic or manual source selection with no double counting.
 - Upload/download burst detection, sustained-upload findings, and recorded collection gaps.
 - Read-only session activity and token counters, kept separate from network bytes.
 - Windows desktop GUI, system tray, optional startup at sign-in, and browser access.
@@ -25,8 +26,8 @@ A local dashboard for Codex network usage, process attribution, and session acti
 
 1. Download `codex-netwatch-windows-x64.zip` and `SHA256SUMS.txt` from the same [release](https://github.com/GloryPkqa/codex-netwatch/releases).
 2. Verify the ZIP's SHA-256, then extract the **entire folder** to a writable location.
-3. Run `Codex-Netwatch.exe` with your proxy and Codex running.
-4. Follow **Connection help** if needed, send a new request in Codex, and wait for two samples. Existing transfers establish a baseline before new bytes accumulate.
+3. Run `Codex-Netwatch.exe` and Codex. A proxy is optional.
+4. For direct capture, open **Settings → Authorize native capture** and accept Windows' administrator prompt. Automatic mode uses an authorized native helper, otherwise attempts Mihomo. Then make a new request in Codex.
 
 ```powershell
 Get-FileHash .\codex-netwatch-windows-x64.zip -Algorithm SHA256
@@ -45,6 +46,7 @@ Install **Node.js 24+**. There are no JavaScript packages to install.
 ```powershell
 git clone https://github.com/GloryPkqa/codex-netwatch.git
 cd codex-netwatch
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/build-native.ps1
 node --disable-warning=ExperimentalWarning src/main.mjs
 ```
 
@@ -55,15 +57,15 @@ Open [127.0.0.1:43128](http://127.0.0.1:43128). On Windows, `start.cmd` starts t
 | Metric            | Meaning                                                                                                     |
 | ----------------- | ----------------------------------------------------------------------------------------------------------- |
 | Codex traffic     | Observed connection-byte deltas with process identity evidence. Other and unidentified traffic is excluded. |
-| All proxy traffic | Global counters from the current controller, including other apps.                                          |
+| All observed traffic | Native process network events or the selected controller's global counters, including other apps.       |
 | Session activity  | Log activity overlapping collection times; **not per-chat GB attribution**.                                 |
 | Token counters    | Local log counters and observed increments; **not billing or subscription quota**.                          |
 
-First attach, restart, source switching, and reconnect establish a new baseline. Offline traffic is not backfilled. Snapshot sampling can miss short connections and closing bytes; these are application bytes, not VPN billing or wire bytes. MB and GB use decimal units.
+Native capture counts new events from helper startup and retains connections that close between dashboard polls. It includes loopback process traffic and shows destination IPs without DNS lookups. ETW buffer loss is recorded as a gap. Mihomo snapshots can miss short connections and closing bytes and establish a baseline on first attach/reconnect. Source changes mark gaps; historical totals can include different measurement methods. Offline traffic is not backfilled, and none of these counters is a VPN bill or interface total. MB and GB use decimal units. See [native capture details](docs/NATIVE_CAPTURE.md).
 
 ## Configuration and troubleshooting
 
-Start with **Connection help** at the top of the dashboard. It shows the current connection state, setup steps and a manual configuration example. The collector retries automatically. Automatic discovery works with supported local Clash Verge configurations and Windows named pipes. Other compatible controllers can be configured explicitly. Use the **controller port**, not the HTTP / SOCKS proxy port.
+Start with **Settings → Traffic capture source** and **Connection help**. Native capture requires administrator authorization for the helper each run, without elevating the dashboard or installing a service. Startup at sign-in does not automatically request elevation. Mihomo mode supports automatic discovery of supported local Clash Verge configurations and Windows named pipes. For manual proxy setup, use the **controller port**, not the HTTP / SOCKS proxy port.
 
 Copy `config.example.json` to `config.local.json`, edit it, then restart. Environment overrides include `CODEX_FLOW_CONTROLLER`, `MIHOMO_SECRET`, `CODEX_HOME`, `CODEX_FLOW_PORT`, and `CODEX_FLOW_DATA_DIR`.
 
@@ -86,7 +88,7 @@ npm run check
 npm test
 ```
 
-The collector uses Node.js HTTP and SQLite with a local HTML/CSS/JavaScript dashboard. Windows socket/process ownership comes from the OS owner tables. Linux/macOS can use controller-supplied process metadata; native socket attribution and the desktop EXE are Windows-specific.
+The collector uses Node.js HTTP and SQLite with a local HTML/CSS/JavaScript dashboard. The native helper uses Windows ETW with a private real-time network session and authenticated local named-pipe IPC; no drivers or packet payloads are collected. Windows process ancestry supplements event PIDs. Linux/macOS can use controller-supplied process metadata; native capture and the desktop EXE are Windows-specific.
 
 [Contributing](CONTRIBUTING.md) · [Stability runner](docs/STABILITY.md) · [MIT license](LICENSE)
 

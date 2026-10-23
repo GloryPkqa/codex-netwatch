@@ -13,6 +13,8 @@ if (Test-Path -LiteralPath $stageRoot) {
 }
 New-Item -ItemType Directory -Path $stage -Force | Out-Null
 foreach ($item in $items) { Copy-Item -LiteralPath (Join-Path $projectRoot $item) -Destination $stage -Recurse -Force }
+New-Item -ItemType Directory -Path (Join-Path $stage 'native') -Force | Out-Null
+Copy-Item -LiteralPath (Join-Path $projectRoot 'native\NetworkCapture.cs') -Destination (Join-Path $stage 'native')
 Add-Type -AssemblyName System.IO.Compression.FileSystem
 if (Test-Path -LiteralPath $outputFile) { Remove-Item -LiteralPath $outputFile -Force }
 [IO.Compression.ZipFile]::CreateFromDirectory($stageRoot, $outputFile, [IO.Compression.CompressionLevel]::Optimal, $false)

@@ -1,5 +1,5 @@
 import { Accounting } from './accounting.mjs';
-import { MihomoSource } from './mihomo.mjs';
+import { TrafficSource } from './sources.mjs';
 import { ProcessObserver } from './processes.mjs';
 import { SessionReader } from './sessions.mjs';
 import { DemoSource } from './demo.mjs';
@@ -11,7 +11,7 @@ export class Monitor {
     this.store = store;
     this.now = now;
     this.accounting = new Accounting();
-    this.source = config.demo ? new DemoSource() : new MihomoSource(config);
+    this.source = config.demo ? new DemoSource() : new TrafficSource({ ...config, captureMode: store.get('captureMode', config.captureMode || 'auto') });
     this.observer = new ProcessObserver(config);
     this.sessions = new SessionReader(config, store);
     this.state = 'starting';
@@ -97,7 +97,10 @@ export class Monitor {
         }
         this.resetBaseline();
         this.sourceGeneration = this.source.generation;
+        this.nativeLost = 0;
       }
+      if (snapshot.eventsLost > (this.nativeLost || 0)) this.intervalGap('native_events_lost', this.lastAt || began, now);
+      this.nativeLost = snapshot.eventsLost || 0;
       if (this.gaps.has('source_unavailable') && !sourceChanged) this.diagnostics.reconnects++;
       for (const reason of [
         'initial_baseline',
@@ -143,7 +146,7 @@ export class Monitor {
       const sample = this.accounting.consume(
         snapshot,
         now,
-        (m, t) => this.observer.classify(m, t),
+        (m, t) => this.observer.classify(snapshot.incremental ? m : { ...m, native: false }, t),
         this.sessions.active,
       );
       const inserted = this.store.record(sample);
@@ -220,6 +223,7 @@ export class Monitor {
       error: this.error,
       controllerIssue: this.controllerIssue || null,
       demo: this.config.demo,
+      capture: this.config.demo ? { mode: 'demo', active: 'demo' } : this.source.status?.(),
       startedAt: this.startedAt,
       firstAt: this.store.firstAt(),
       lastAt: this.lastAt,
@@ -248,10 +252,16 @@ export class Monitor {
     this.alertMBPerMinute = value;
     this.store.set('alertMBPerMinute', value);
   }
+  async setCapture(mode, authorize = false) {
+    if (this.config.demo || !this.source.setMode) throw new Error('capture_unavailable');
+    await this.source.setMode(mode, authorize);
+    this.store.set('captureMode', mode);
+  }
   stop() {
     this.stopping = true;
     clearTimeout(this.timer);
     this.observer.stop();
+    this.source.stop?.();
     for (const reason of this.gaps.keys()) {
       try {
         this.closeGap(reason, this.now());

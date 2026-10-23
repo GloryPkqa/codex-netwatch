@@ -224,6 +224,7 @@ internal sealed class NetwatchTray : ApplicationContext
         info.RedirectStandardOutput = true; info.RedirectStandardError = true; info.RedirectStandardInput = true;
         info.EnvironmentVariables["CODEX_FLOW_PORT"] = new Uri(options.BaseUrl).Port.ToString(CultureInfo.InvariantCulture);
         info.EnvironmentVariables["CODEX_NETWATCH_DESKTOP_TOKEN"] = token;
+        info.EnvironmentVariables["CODEX_NETWATCH_HOST_PID"] = Process.GetCurrentProcess().Id.ToString(CultureInfo.InvariantCulture);
         try
         {
             Directory.CreateDirectory(options.DataDir);

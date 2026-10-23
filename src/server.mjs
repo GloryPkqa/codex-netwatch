@@ -118,6 +118,17 @@ export function createServer(config, store, monitor, shutdown) {
           return json(403, { error: 'Missing local client header' });
         if (req.method === 'POST') {
           const body = await readBody(req);
+          if (url.pathname === '/api/capture') {
+            const request = JSON.parse(body || '{}');
+            if (!['auto', 'native', 'mihomo'].includes(request.mode) || typeof request.authorize !== 'boolean')
+              return json(400, { error: 'Invalid capture mode' });
+            try {
+              await monitor.setCapture(request.mode, request.authorize);
+              return json(200, { ok: true });
+            } catch {
+              return json(409, { error: '原生采集未启动，请检查 Windows 授权或采集诊断。' });
+            }
+          }
           if (url.pathname === '/api/settings') {
             const value = JSON.parse(body || '{}').alertMBPerMinute;
             if (!Number.isFinite(value) || value < 0.1 || value > 1000000)
@@ -187,7 +198,7 @@ export function createServer(config, store, monitor, shutdown) {
           res.end(
             '\uFEFF' +
               [
-                '# Mihomo observed bytes; not VPN wire bytes. Sessions are not byte-attributed.',
+                '# Observed process bytes (Windows ETW or Mihomo); not VPN billing. Sessions are not byte-attributed.',
                 columns.join(','),
                 ...rows.map((row) => columns.map((k) => csvCell(row[k])).join(',')),
               ].join('\r\n'),

@@ -63,6 +63,8 @@ const evidence = {
   process: '套接字 → 进程',
   descendant: 'Codex 子进程',
   mihomo: 'Mihomo 进程字段',
+  etw: 'Windows 网络事件 → 进程',
+  etw_descendant: 'Windows 网络事件 → Codex 子进程',
   none: '缺少进程证据',
 };
 const scopeName = { codex: 'Codex', unknown: '待识别', other: '其他进程', all: '全部进程' };
@@ -154,6 +156,7 @@ function render(data) {
   latest = data;
   renderSetup();
   const { status: s, totals: totals } = data;
+  renderCapture(s);
   $('statusPill').className = `status-pill ${s.state}`;
   $('statusText').textContent =
     s.state === 'connected'
@@ -173,7 +176,7 @@ function render(data) {
   const all = totals.all_up + totals.all_down,
     codex = totals.codex_up + totals.codex_down;
   $('share').textContent = all
-    ? t('Codex 已识别字节 / 全部代理字节：{share}%', { share: ((codex / all) * 100).toFixed(1) })
+    ? t('Codex 已识别字节 / 全部已观测字节：{share}%', { share: ((codex / all) * 100).toFixed(1) })
     : t('从建立基线之后开始累计');
   $('codexConnections').textContent = s.codexConnections;
   $('unknownConnections').textContent = t('全部 {total} 条 · {unknown} 条待识别进程', {
@@ -222,12 +225,13 @@ const anomalyNames = {
 const gapNames = {
   initial_baseline: '首次建立基线',
   collector_restart: '程序重启',
-  source_unavailable: '代理接口断线',
-  source_changed: '代理接口切换',
+  source_unavailable: '采集源断线',
+  source_changed: '采集源切换',
   sampling_delay: '采样延迟或休眠',
   observer_unavailable: '进程识别不可用',
   clock_changed: '系统时间变化',
   collector_error: '采集失败',
+  native_events_lost: 'Windows 网络事件丢失',
 };
 function duration(ms) {
   if (!Number.isFinite(ms) || ms < 0) return '—';
@@ -248,7 +252,7 @@ function renderInsights(data) {
   processes.replaceChildren();
   const c = data?.coverage;
   $('coverageSummary').textContent = c
-    ? t('连接快照 {bytes} · 未识别 {unknown}（{share}）· 代理全局 {proxy}', {
+    ? t('连接记录 {bytes} · 未识别 {unknown}（{share}）· 采集源总量 {proxy}', {
         bytes: byteText(c.totalConnectionBytes),
         unknown: byteText(c.unknownBytes),
         share: c.unknownShare === null ? '—' : `${(c.unknownShare * 100).toFixed(1)}%`,
@@ -306,11 +310,11 @@ function renderInsights(data) {
     gaps.append(row);
   }
   const codexOnly = processScope !== 'all';
-  $('processTitle').textContent = t(codexOnly ? 'Codex 进程流量排行' : '全部代理进程流量排行');
+  $('processTitle').textContent = t(codexOnly ? 'Codex 进程流量排行' : '全部已观测进程流量排行');
   $('processCaption').textContent = t(
     codexOnly
       ? '仅显示已识别的 Codex 进程及子进程，按上传与下载合计排序，最多 8 项。'
-      : '对照全部代理程序的用量；其他进程和待识别流量不会计入 Codex，最多 8 项。',
+      : '对照全部已观测程序的用量；其他进程和待识别流量不会计入 Codex，最多 8 项。',
   );
   const processData = codexOnly
     ? data?.codexProcesses || (data?.processes || []).filter((row) => row.scope === 'codex')
@@ -500,6 +504,7 @@ async function showCorrelation(session) {
 }
 function renderDiagnostics(s) {
   const rows = [
+    [t('流量采集方式'), captureName(s.capture?.active)],
     [t('数据接口'), t(s.endpoint) || t('正在探测本地接口')],
     [t('Windows 进程识别'), t(stateName[s.observer] || s.observer)],
     [t('Codex 会话读取'), t(stateName[s.sessionReader] || s.sessionReader)],
@@ -525,6 +530,33 @@ function renderDiagnostics(s) {
   );
   if (!$('settingsDialog').open) $('threshold').value = s.alertMBPerMinute;
 }
+let captureBusy = false;
+function captureName(active) {
+  return t(active === 'native' ? 'Windows 原生采集' : active === 'mihomo' ? 'Mihomo 兼容接口' : active === 'demo' ? '演示模式' : '尚无可用采集源');
+}
+function renderCapture(status) {
+  const capture = status.capture || {};
+  $('captureStatus').textContent = captureName(capture.active) + ' · ' +
+    t(capture.nativeState === 'ready' ? '原生采集已授权' : capture.nativeState === 'starting' ? '正在等待 Windows 授权' : '原生采集需要授权');
+  $('captureBadge').textContent = captureName(capture.active);
+  if (!captureBusy) $('captureMode').value = capture.mode === 'demo' ? 'auto' : capture.mode || 'auto';
+  $('captureMode').disabled = captureBusy || status.demo;
+  $('authorizeCapture').disabled = captureBusy || status.demo || capture.nativeState === 'ready' || capture.nativeState === 'unsupported';
+}
+async function changeCapture(authorize) {
+  if (captureBusy) return;
+  captureBusy = true;
+  const mode = $('captureMode').value;
+  $('captureMode').disabled = $('authorizeCapture').disabled = true;
+  if (authorize) $('captureStatus').textContent = t('请在 Windows 授权窗口中选择是；取消授权不会关闭程序。');
+  try {
+    await api('/api/capture', { method: 'POST', body: JSON.stringify({ mode: authorize && mode === 'mihomo' ? 'native' : mode, authorize }) });
+    toast(t('采集方式已更新'));
+  } catch (error) { toast(error.message); }
+  finally { captureBusy = false; refresh(); }
+}
+$('captureMode').addEventListener('change', () => changeCapture(false));
+$('authorizeCapture').addEventListener('click', () => changeCapture(true));
 function renderAlerts(rows) {
   if (
     lastAlertId !== null &&

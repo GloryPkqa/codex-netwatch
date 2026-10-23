@@ -1,6 +1,8 @@
 # Configuration and troubleshooting
 
-The network collector needs a **Mihomo / Clash-compatible local controller** with a compatible `/connections` response. A proxy client without that interface, another VPN, or direct traffic is outside the current network coverage. Session log reading works independently.
+Choose the network source in **Settings → Traffic capture source**: Automatic, Windows native, or Mihomo. **Direct traffic is supported by Windows native capture**; it does not require a proxy or controller. Click **Authorize native capture** and accept Windows' administrator prompt for the helper. See [native capture](NATIVE_CAPTURE.md) for permissions, counting methods and troubleshooting. Session log reading works independently.
+
+Automatic mode uses an authorized native helper when available, otherwise attempts a Mihomo / Clash-compatible local controller with a compatible `/connections` response. `captureMode` in config can be `auto` (default), `native`, or `mihomo`; a saved Settings selection takes precedence. `CODEX_NETWATCH_CAPTURE_MODE` configures the startup default. The rest of the controller-specific instructions below apply when using Mihomo.
 
 ## First connection
 

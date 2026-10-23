@@ -81,6 +81,10 @@ foreach ($item in @('src','public','docs','LICENSE','package.json','config.examp
 }
 New-Item -ItemType Directory -Path (Join-Path $stage 'scripts') -Force | Out-Null
 Copy-Item -LiteralPath (Join-Path $projectRoot 'scripts\windows-observer.ps1') -Destination (Join-Path $stage 'scripts')
+New-Item -ItemType Directory -Path (Join-Path $stage 'native') -Force | Out-Null
+& (Join-Path $projectRoot 'scripts\build-native.ps1') -Destination (Join-Path $stage 'native\Codex-Netwatch-Capture.exe')
+Copy-Item -LiteralPath (Join-Path $projectRoot 'native\NetworkCapture.cs') -Destination (Join-Path $stage 'native')
+Copy-Item -LiteralPath (Join-Path $projectRoot 'scripts\build-native.ps1') -Destination (Join-Path $stage 'scripts')
 Copy-Item -LiteralPath (Join-Path $projectRoot 'docs\WINDOWS_PORTABLE.md') -Destination (Join-Path $stage 'WINDOWS_PORTABLE.md')
 $icon = Join-Path $stageRoot 'Netwatch.ico'
 & (Join-Path $projectRoot 'desktop\make-icon.ps1') -Destination $icon
@@ -97,7 +101,7 @@ $readme = @'
 Codex Netwatch - Windows x64 portable preview
 
 Extract this entire folder to a writable location, then double-click Codex-Netwatch.exe.
-No Node.js installation or administrator permission is required.
+Node.js is bundled. Native direct-traffic capture requires Windows administrator authorization for its helper; Mihomo capture does not.
 Keep runtime/, src/, public/, and scripts/ beside the EXE.
 
 The EXE opens the same dashboard in its own desktop window (WebView2).

@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.3.0 — 2026-10-23
+
+- Add Windows ETW native TCP/UDP capture for direct traffic, IPv4/IPv6 and short-lived connections; a proxy is optional.
+- Add Automatic, Windows native and Mihomo source modes in Settings, with explicit authorization for an isolated native helper and a visible active-source indicator.
+- Keep one source per interval, reset controller baselines on source changes, and record ETW event loss as collection gaps.
+- Preserve PID/creation-time evidence, keep unknown ownership separate, and exclude the monitor's own known process tree from Codex attribution.
+- Rename proxy-only reference labels to observed process traffic and document native IP destinations, loopback scope and per-run Windows authorization.
+- Build the helper in portable packages and CI, with parser tests and a real administrator-run direct-transfer integration test.
+
 ## 0.2.6 — 2026-10-22
 
 - Add bilingual first-run connection guidance and a persistent Connection help entry, with steps for controller discovery, manual setup and first measured traffic.

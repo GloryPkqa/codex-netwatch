@@ -1,12 +1,13 @@
 # Security and privacy
 
-This is a local observability tool, not a security boundary or packet capture product. It runs with the current user's permissions. The latest v0.2.x prerelease is currently maintained.
+This is a local observability tool, not a security boundary. The dashboard runs with the current user's permissions. Windows native collection uses a separate administrator-authorized helper. The latest v0.3.x release is currently maintained.
 
 ## Boundaries
 
 - HTTP server binds only to `127.0.0.1`, validates the Host header, rejects foreign Origin headers, and requires a custom header for data/mutation APIs. No CORS access is granted. Health reports app/version/state, system locale, demo mode and (for tray-launched collectors) a random ownership marker. The marker protects lifecycle coordination; it is not a security boundary against other local applications.
 - Controller targets are limited to local HTTP endpoints or Windows named pipes. Controller operations are read-only GET `/connections`. Credentials are never sent to the browser or saved in the monitor database. The program does not read Codex authentication files.
-- The monitor does not change proxy rules, controller security, system proxy settings, or Codex settings. No TLS interception or administrator requirement is introduced.
+- The monitor does not change proxy rules, controller security, system proxy settings, or Codex settings. No TLS interception, driver or service is installed. Windows native capture requires administrator authorization for its narrow ETW helper; proxy capture does not.
+- The native helper starts its own uniquely named real-time network trace and never takes over another trace session. It accepts only snapshot/stop commands over a random local pipe, checks the server process ID, and authenticates its handshake. Pipe disconnect stops its trace. Packet payloads and DNS queries are not captured; native destination labels are IPs. The helper and ETW buffers exist only while this collector is running.
 - Codex state databases use read-only/query-only connections. Rollout paths must resolve within the configured Codex home. Only bounded log tails are parsed. Command lines and chat/tool contents are not persisted.
 - HTML renders user-derived fields through text nodes. Assets are local with a restrictive CSP. CSV export quotes fields and neutralises leading spreadsheet formulas.
 - Process ancestry rejects cycles and parent PID reuse. Socket matches require an unambiguous owner. Missing identity remains unknown.

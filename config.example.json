@@ -1,6 +1,7 @@
 {
   "port": 43128,
   "controller": "auto",
+  "captureMode": "auto",
   "codexHome": "",
   "intervalMs": 1000,
   "retentionDays": 30,

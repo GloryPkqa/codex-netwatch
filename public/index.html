@@ -27,7 +27,7 @@
         <span class="local-dot"></span> 数据只保存在本机
         <p>无云端 · 无遥测 · 无外部资源</p>
         <span class="version"
-          >v0.2.6 /
+          >v0.3.0 /
           <a
             class="version-link"
             href="https://github.com/GloryPkqa/codex-netwatch"
@@ -43,6 +43,7 @@
       <header class="topbar">
         <span>个人监控台 <span class="slash">/</span> <strong>Codex</strong></span>
         <div class="top-actions">
+          <span id="captureBadge" class="small-muted"></span>
           <label class="sr-only" for="language">界面语言</label>
           <select id="language" class="language-select">
             <option value="en" lang="en">English</option>
@@ -92,7 +93,7 @@
         <div class="panel-heading">
           <div>
             <h2 id="setupTitle">开始监控</h2>
-            <p>Windows + Mihomo / Clash 兼容控制接口</p>
+            <p>Windows 原生采集 / Mihomo 兼容接口</p>
           </div>
           <button id="closeSetup" class="icon-button" type="button" aria-label="收起连接帮助">
             ✕
@@ -105,8 +106,8 @@
           </div>
           <ol class="setup-steps">
             <li>
-              <strong>运行兼容代理</strong>
-              <p>需要 Mihomo / Clash 兼容的控制接口；仅开启系统代理或 VPN 并不代表兼容。</p>
+              <strong>选择采集方式</strong>
+              <p>直连使用 Windows 原生采集，无需代理。在设置中授权采集助手；也可选择 Mihomo 兼容接口。</p>
             </li>
             <li>
               <strong>连接本地控制接口</strong>
@@ -163,12 +164,12 @@
           </div>
         </article>
         <article class="metric">
-          <div class="metric-label">全部代理流量 <span class="tiny-tag neutral">对照</span></div>
+          <div class="metric-label">全部已观测进程流量 <span class="tiny-tag neutral">对照</span></div>
           <div class="metric-value" id="allBytes">—</div>
           <div class="metric-foot" id="share">等待采样</div>
         </article>
         <article class="metric">
-          <div class="metric-label">当前 Codex 连接</div>
+          <div class="metric-label">近期 Codex 连接</div>
           <div class="metric-value" id="codexConnections">—</div>
           <div class="metric-foot" id="unknownConnections">进程匹配准备中</div>
         </article>
@@ -182,7 +183,7 @@
             </div>
             <div class="legend">
               <span class="legend-up">上传</span><span class="legend-down">下载</span
-              ><span class="legend-all">全部代理</span>
+              ><span class="legend-all">全部进程</span>
             </div>
           </div>
           <div class="chart-wrap">
@@ -215,12 +216,12 @@
             </div>
           </div>
           <div class="coverage-context">
-            <span class="tiny-tag neutral">全部代理连接</span
+            <span class="tiny-tag neutral">全部已观测连接</span
             ><span>用于检查采集覆盖情况，包含其他程序，不是 Codex 专属用量。</span>
           </div>
           <p id="coverageSummary" class="coverage-summary">等待观测记录</p>
           <p class="insight-note">
-            未识别占比仅针对连接快照，不代表完整抓包覆盖率；代理全局与连接快照可能存在差额。
+            未识别占比仅针对已观测连接，不代表完整覆盖率；采集源总量与连接记录可能存在差额。
           </p>
           <p class="insight-note">
             主要连接线索取自每次采样最多 20 条主要上传或下载连接；异常窗口总量包含全部已识别 Codex
@@ -261,7 +262,7 @@
               <label class="sr-only" for="processScope">排行统计范围</label>
               <select id="processScope">
                 <option value="codex">仅 Codex</option>
-                <option value="all">全部代理进程</option>
+                <option value="all">全部已观测进程</option>
               </select>
             </div>
             <div class="table-scroll">
@@ -283,7 +284,7 @@
         <div class="panel-heading connection-heading">
           <div>
             <h2>连接与去向</h2>
-            <p>字节来自 Mihomo 连接计数，归属来自进程证据。</p>
+            <p>字节来自当前采集源，归属来自进程证据。原生模式显示目标 IP。</p>
           </div>
           <div class="filters">
             <label class="sr-only" for="scope">进程筛选</label
@@ -376,9 +377,7 @@
       <div class="method-note">
         <strong>统计口径</strong>
         <p>
-          仅覆盖经过当前 Mihomo 的连接，是应用层已观测字节，不等同于 VPN
-          账单或网卡流量。短连接、采样间隙和连接关闭前的最后一段可能漏计；首次连接、重连和程序重启先建立基线，不补算离线流量。未识别的流量单独保留，绝不按域名或
-          token 猜测会话用量。
+          Windows 原生模式记录 TCP/UDP 进程网络事件（包括回环连接）；Mihomo 模式仅覆盖其控制器中的连接。同一时刻只使用一个来源，不叠加两者。统计不是 VPN 账单或网卡总流量；丢失事件、采样缺口与离线期间不补算。切换来源会标记缺口，历史可能包含不同统计口径。不会按域名或 token 猜测会话用量。
         </p>
       </div>
       <footer class="footer">
@@ -404,6 +403,17 @@
         <label for="threshold">流量提醒阈值 <span>MB / 最近 60 秒</span></label
         ><input id="threshold" type="number" min="0.1" max="1000000" step="0.1" required />
         <p class="help">十进制 MB。阈值仅用于提醒，不会终止连接或会话。</p>
+        <section class="capture-settings">
+          <label for="captureMode">流量采集方式</label>
+          <select id="captureMode">
+            <option value="auto">自动选择</option>
+            <option value="native">Windows 原生（无需代理）</option>
+            <option value="mihomo">Mihomo / Clash 兼容接口</option>
+          </select>
+          <p id="captureStatus" class="help" role="status"></p>
+          <p class="help">自动模式优先使用已授权的原生采集，否则尝试 Mihomo。Windows 授权仅提升采集助手；退出程序后授权结束，开机自启不会自动弹出授权。</p>
+          <button id="authorizeCapture" type="button" class="button secondary">授权原生采集</button>
+        </section>
         <div class="settings-note">
           接口地址、采样周期、保留天数及子进程范围可在
           <code>config.local.json</code> 中设置，修改后重启生效。接口密钥通过
