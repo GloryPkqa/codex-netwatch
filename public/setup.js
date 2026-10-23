@@ -5,7 +5,7 @@ export function setupState(status, totals = {}, unavailable = false) {
   if (!status || status.state === 'starting') return 'starting';
   if (status.capture?.active === 'native' && status.state === 'connected')
     return totals.codex_up + totals.codex_down > 0 ? 'native_ready' : 'native_idle';
-  if (status.state !== 'connected' && status.capture?.nativeIssue && status.capture.mode !== 'mihomo') return 'native_authorization';
+  if (status.state !== 'connected' && status.capture?.nativeIssue && status.capture.nativeIssue !== 'unsupported' && status.capture.mode !== 'mihomo') return 'native_authorization';
   if (status.state !== 'connected') {
     return ['authorization', 'incompatible', 'unreachable', 'collection'].includes(
       status.controllerIssue,

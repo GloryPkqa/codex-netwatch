@@ -536,7 +536,7 @@ function captureName(active) {
 }
 function renderCapture(status) {
   const capture = status.capture || {};
-  $('captureStatus').textContent = captureName(capture.active) + ' · ' +
+  $('captureStatus').textContent = status.demo ? t('演示模式不启动真实采集') : captureName(capture.active) + ' · ' +
     t(capture.nativeState === 'ready' ? '原生采集已授权' : capture.nativeState === 'starting' ? '正在等待 Windows 授权' : '原生采集需要授权');
   $('captureBadge').textContent = captureName(capture.active);
   if (!captureBusy) $('captureMode').value = capture.mode === 'demo' ? 'auto' : capture.mode || 'auto';

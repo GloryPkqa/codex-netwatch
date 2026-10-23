@@ -182,6 +182,8 @@ export class Monitor {
       this.error = /未连接|接口需要/.test(error.message)
         ? error.message
         : '采集暂时失败，正在自动重试；空档不计为零流量。';
+      if (operation === 'source' && this.source.native?.issue === 'elevation_required' && this.source.preference !== 'mihomo')
+        this.error = '原生采集需要 Windows 授权；请在设置中授权采集助手，或选择 Mihomo 接口。';
       // Reconnect starts a new baseline. Offline traffic is deliberately not invented.
       this.diagnostics.failures++;
       this.diagnostics.lastError = String(error.code || error.name || 'Error')

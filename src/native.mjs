@@ -68,6 +68,7 @@ export class NativeSource {
               if (packet.type === 'error') { fail(packet.issue === 'elevation_required' ? packet.issue : 'native_failed'); return; }
               if (packet.type !== 'ready' || !/^[a-f0-9]{32}$/.test(packet.generation)) { fail('native_protocol'); return; }
               clearTimeout(deadline); this.generation++; this.sequence = 0;
+              this.sessionId = packet.generation;
               this.state = 'ready'; this.issue = null; resolve();
             } else if (packet.type === 'snapshot' && this.pending) {
               if (packet.sequence <= this.sequence) throw new Error('Duplicate native snapshot');
@@ -107,6 +108,9 @@ export class NativeSource {
       const settle = (fn, value) => { clearTimeout(timer); this.pending = null; fn(value); };
       this.pending = { resolve: (x) => settle(resolve, x), reject: (x) => settle(reject, x) };
       this.socket.write('snapshot\n');
+    }).catch((error) => {
+      if (this.state !== 'stopped') { this.state = 'error'; this.issue = 'native_failed'; this.disposeTransport(); }
+      throw error;
     });
   }
   disposeTransport() {

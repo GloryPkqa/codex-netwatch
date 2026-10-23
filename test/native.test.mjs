@@ -4,6 +4,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import http from 'node:http';
+import dgram from 'node:dgram';
 import { spawn, spawnSync } from 'node:child_process';
 import { NativeSource, nativeSnapshot } from '../src/native.mjs';
 import { Accounting } from '../src/accounting.mjs';
@@ -62,6 +63,16 @@ test('automatic capture selects one source and never doubles proxy plus native b
   assert.equal((await source.snapshot()).uploadTotal, 999);
   assert.equal(source.generation, generation + 1); assert.equal(proxyCalls, 1);
 });
+test('automatic fallback never opens UAC, and explicit native mode never silently uses proxy counters', async () => {
+  const source = new TrafficSource({ captureMode: 'auto' });
+  let calls = 0;
+  source.native = { state: 'error', issue: 'elevation_required', start: async (...args) => { assert.deepEqual(args, []); throw new Error('elevation_required'); }, stop() {} };
+  source.proxy = { generation: 1, snapshot: async () => { calls++; return { uploadTotal: 50 }; } };
+  assert.equal((await source.snapshot()).uploadTotal, 50);
+  await source.setMode('native');
+  await assert.rejects(source.snapshot(), /elevation_required/);
+  assert.equal(calls, 1);
+});
 
 // GitHub Windows hosted runners are elevated. This is a real ETW test with a
 // separate, short-lived Codex-named process doing direct TCP (no proxy involved).
@@ -95,5 +106,35 @@ test('Windows ETW captures direct upload and download and stops its private sess
   assert.ok(up >= 1024 * 1024, `Direct upload not captured: ${up}`);
   assert.ok(down >= 2 * 1024 * 1024, `Direct download not captured: ${down}`);
   assert.ok(up < 4 * 1024 * 1024 && down < 6 * 1024 * 1024, 'Unexpected duplicate counts');
+  const sessionName = `CodexNetwatch-${source.sessionId}`;
   source.stop(); assert.equal(source.state, 'stopped');
+  let stopped = false;
+  for (let i = 0; i < 10; i++) {
+    await new Promise((resolve) => setTimeout(resolve, 300));
+    if (spawnSync('logman.exe', ['query', sessionName, '-ets'], { windowsHide: true, stdio: 'ignore' }).status !== 0) { stopped = true; break; }
+  }
+  assert.ok(stopped, 'The private ETW session must stop with the helper');
+});
+
+test('Windows ETW captures a direct UDP exchange', { skip: !elevated && !process.env.NETWATCH_REQUIRE_NATIVE_TEST, timeout: 30000 }, async (t) => {
+  assert.ok(elevated, 'Windows CI native testing requires administrator privileges');
+  const source = new NativeSource({ root: path.resolve(import.meta.dirname, '..') });
+  const server = dgram.createSocket('udp4');
+  let child;
+  server.on('message', (_, peer) => server.send(Buffer.alloc(2048), peer.port, peer.address));
+  await new Promise((resolve) => server.bind(0, '127.0.0.1', resolve));
+  t.after(async () => {
+    if (child && child.exitCode === null) await new Promise((resolve) => { child.once('exit', resolve); child.kill(); });
+    source.stop(); server.close();
+  });
+  await source.start();
+  child = spawn(process.execPath, ['-e', `const s=require('dgram').createSocket('udp4');s.on('message',()=>setTimeout(()=>s.close(),4000));s.send(Buffer.alloc(1024),${server.address().port},'127.0.0.1');`], { windowsHide: true, stdio: 'ignore' });
+  let up = 0, down = 0;
+  for (let i = 0; i < 12; i++) {
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+    for (const row of (await source.snapshot()).connections.filter((c) => c.metadata.processId === child.pid && c.metadata.network === 'udp')) { up += row.upload; down += row.download; }
+    if (up >= 1024 && down >= 2048) break;
+  }
+  assert.ok(up >= 1024, `UDP upload not captured: ${up}`);
+  assert.ok(down >= 2048, `UDP download not captured: ${down}`);
 });
