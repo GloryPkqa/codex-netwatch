@@ -199,6 +199,7 @@ export const messages = Object.freeze({
   统计时间范围: 'Time range',
   '最近 15 分钟': 'Last 15 minutes',
   '最近 1 小时': 'Last hour',
+  '最近 6 小时': 'Last 6 hours',
   '最近 24 小时': 'Last 24 hours',
   '最近 7 天': 'Last 7 days',
   '最近 30 天': 'Last 30 days',
@@ -281,8 +282,11 @@ export const messages = Object.freeze({
   'MB / 最近 60 秒': 'MB / last 60 seconds',
   '十进制 MB。阈值仅用于提醒，不会终止连接或会话。':
     'Decimal MB. Alerts do not terminate connections or sessions.',
-  '接口地址、采样周期、保留天数及子进程范围可在':
-    'Set the controller, sampling interval, retention and descendant scope in',
+  天: 'days',
+  '1–365 天。保存后在下次成功采集时按新期限清理；缩短期限会删除较早数据，延长不会恢复已删除数据。':
+    '1–365 days. The next successful collection applies the saved retention window. Shortening it deletes older data; extending it cannot restore deleted data.',
+  '接口地址、采样周期及子进程范围可在':
+    'Set the controller, sampling interval and descendant scope in',
   '中设置，修改后重启生效。接口密钥通过':
     'and restart to apply changes. Provide the controller secret through the',
   '环境变量提供。': 'environment variable.',
@@ -368,7 +372,7 @@ export const messages = Object.freeze({
     'Cannot reach the local monitor. Displayed data is retained on this page. Run the launcher again.',
   '开始时间须早于结束时间且不能晚于现在，跨度不超过 366 天。':
     'Start must precede end and cannot be in the future. Maximum range: 366 days.',
-  提醒阈值已保存: 'Alert threshold saved',
+  监控设置已保存: 'Monitor settings saved',
   采集已停止: 'Collection stopped',
   '后台采集已停止。再次运行启动脚本即可继续。':
     'Background collection stopped. Run the launcher again to resume.',
@@ -383,6 +387,7 @@ export const messages = Object.freeze({
   'Windows 命名管道': 'Windows named pipe',
   '演示数据（非实测）': 'Synthetic demo data',
   '阈值应为 0.1–1000000 MB/分钟': 'Threshold must be 0.1–1000000 MB per minute',
+  '保留天数应为 1–365 的整数': 'Retention must be a whole number from 1 to 365 days',
   '请求无法处理，请检查参数或稍后重试。':
     'Cannot process this request. Check the parameters or try again.',
   '接口需要授权：设置 MIHOMO_SECRET 后重启。':

@@ -2,6 +2,14 @@
 
 Latest validation recorded on 2026-10-23. These results describe the tested workload and host, not an accuracy guarantee for every capture source or Windows installation. Older entries retain their original scope.
 
+## v0.3.2 editable retention and six-hour range
+
+- Local Windows syntax checks passed. Of 90 automated tests, 88 passed and the two administrator-only native integration tests were explicitly skipped on the unelevated host.
+- Retention regressions verify valid boundaries, rejection of fractional/out-of-range values before any settings changes, persistence through a new database connection, cleanup on the next successful poll and no restoration of deleted history after increasing the period. Diagnostics report the effective saved retention.
+- Range validation checks the six-hour query boundary. The shared range applies to both the dashboard and CSV export.
+- An isolated real WebView2 GUI saved a custom retention value, reopened the setting, rejected zero days, selected Last 6 hours and verified English/Chinese labels. Existing CSV, startup-state, window and navigation checks also passed, along with the bundled portable lifecycle smoke.
+- These checks used synthetic test data. No retention change was made to the user's real data as part of testing, and no long-run validation was resumed.
+
 ## v0.3.1 native capture and source switching
 
 - [CI run 39906895995](https://github.com/GloryPkqa/codex-netwatch/actions/runs/39906895995) tested commit `7cec8eafb4910e1ac97c8fcb41170551ebd21e69`. Windows passed all 89 tests with no failures or skips; Linux regression and packaged Windows lifecycle jobs also passed.

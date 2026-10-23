@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.3.2 — 2026-10-23
+
+- Add a persistent 1–365-day data retention setting, applied on the next successful collection without restarting. Show deletion behavior in both languages and report the effective value in diagnostics.
+- Add Last 6 hours to the shared dashboard/CSV time filter.
+
 ## 0.3.1 — 2026-10-23
 
 - Drain the first native interval when switching from proxy capture. This prevents a helper started during an in-flight controller request from counting the same cutover bytes twice; the cutover remains visible as a collection gap.

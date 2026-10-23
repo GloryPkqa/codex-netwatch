@@ -22,6 +22,9 @@ test('controllers are restricted to local HTTP or Windows named pipes', () => {
 });
 test('range validation aligns minute buckets and rejects invalid queries', () => {
   assert.equal(parseRange(new URL('http://x/?range=15m'), 1000000, 0).from, 60000);
+  assert.deepEqual(parseRange(new URL('http://x/?range=6h'), 86400000, 0), {
+    from: 64800000, to: 86400000,
+  });
   assert.throws(() => parseRange(new URL('http://x/?from=NaN'), 1000000, 0));
   assert.throws(() => parseRange(new URL('http://x/?from=10&to=5'), 1000000, 0));
 });
@@ -36,6 +39,7 @@ test('local server enforces Host, Origin and custom client header; settings pers
     state: 'connected',
     status: () => ({ state: 'connected' }),
     setThreshold: (v) => store.set('threshold', v),
+    setRetentionDays: (v) => store.set('retentionDays', v),
   };
   const server = createServer({ root, port: 43128 }, store, monitor, () => {});
   await new Promise((r) => server.listen(0, '127.0.0.1', r));
@@ -79,6 +83,23 @@ test('local server enforces Host, Origin and custom client header; settings pers
     200,
   );
   assert.equal(store.get('threshold', 0), 5);
+  for (const retentionDays of [1, 365, 7]) {
+    const saved = await fetch(`${url}/api/settings`, {
+      method: 'POST', headers: h,
+      body: JSON.stringify({ alertMBPerMinute: 5, retentionDays }),
+    });
+    assert.equal(saved.status, 200);
+    assert.equal(store.get('retentionDays', 0), retentionDays);
+  }
+  for (const retentionDays of [0, 366, 1.5, '7', null]) {
+    const invalid = await fetch(`${url}/api/settings`, {
+      method: 'POST', headers: h,
+      body: JSON.stringify({ alertMBPerMinute: 999, retentionDays }),
+    });
+    assert.equal(invalid.status, 400);
+    assert.equal(store.get('retentionDays', 0), 7);
+    assert.equal(store.get('threshold', 0), 5);
+  }
   assert.equal(
     (
       await fetch(`${url}/api/settings`, {

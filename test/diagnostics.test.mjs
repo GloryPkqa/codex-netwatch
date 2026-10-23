@@ -70,6 +70,7 @@ test('diagnostic export allowlist excludes identities, paths, credentials and ra
           codexConnections: 1,
           unknownConnections: 0,
           processes: 3,
+          retentionDays: 7,
           diagnostics: {
             lastError: privateValue,
             lastPollMs: 4,
@@ -86,6 +87,7 @@ test('diagnostic export allowlist excludes identities, paths, credentials and ra
     assert.ok(!serialized.includes(dir));
     assert.ok(!serialized.includes('999888777'));
     assert.equal(report.app.version, VERSION);
+    assert.equal(report.collector.retentionDays, 7);
     assert.equal(report.storage.integrity, 'ok');
     assert.equal(report.last24Hours.observedCodexBytes, 20);
     assert.equal(report.collector.resources.rssBytes, 256);

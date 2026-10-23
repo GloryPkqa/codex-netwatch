@@ -8,6 +8,7 @@ export function parseRange(url, now, firstAt) {
   const ranges = {
     '15m': 900000,
     '1h': 3600000,
+    '6h': 21600000,
     '24h': 86400000,
     '7d': 604800000,
     '30d': 2592000000,
@@ -130,9 +131,14 @@ export function createServer(config, store, monitor, shutdown) {
             }
           }
           if (url.pathname === '/api/settings') {
-            const value = JSON.parse(body || '{}').alertMBPerMinute;
+            const request = JSON.parse(body || '{}');
+            const value = request.alertMBPerMinute;
             if (!Number.isFinite(value) || value < 0.1 || value > 1000000)
               return json(400, { error: '阈值应为 0.1–1000000 MB/分钟' });
+            if (request.retentionDays !== undefined &&
+              (!Number.isInteger(request.retentionDays) || request.retentionDays < 1 || request.retentionDays > 365))
+              return json(400, { error: '保留天数应为 1–365 的整数' });
+            if (request.retentionDays !== undefined) monitor.setRetentionDays(request.retentionDays);
             monitor.setThreshold(value);
             return json(200, { ok: true });
           }

@@ -27,7 +27,7 @@
         <span class="local-dot"></span> 数据只保存在本机
         <p>无云端 · 无遥测 · 无外部资源</p>
         <span class="version"
-          >v0.3.1 /
+          >v0.3.2 /
           <a
             class="version-link"
             href="https://github.com/GloryPkqa/codex-netwatch"
@@ -75,6 +75,7 @@
           ><select id="range">
             <option value="15m">最近 15 分钟</option>
             <option value="1h" selected>最近 1 小时</option>
+            <option value="6h">最近 6 小时</option>
             <option value="24h">最近 24 小时</option>
             <option value="7d">最近 7 天</option>
             <option value="30d">最近 30 天</option>
@@ -403,6 +404,9 @@
         <label for="threshold">流量提醒阈值 <span>MB / 最近 60 秒</span></label
         ><input id="threshold" type="number" min="0.1" max="1000000" step="0.1" required />
         <p class="help">十进制 MB。阈值仅用于提醒，不会终止连接或会话。</p>
+        <label for="retentionDays">数据保留 <span>天</span></label>
+        <input id="retentionDays" type="number" min="1" max="365" step="1" required aria-describedby="retentionHelp" />
+        <p id="retentionHelp" class="help">1–365 天。保存后在下次成功采集时按新期限清理；缩短期限会删除较早数据，延长不会恢复已删除数据。</p>
         <section class="capture-settings">
           <label for="captureMode">流量采集方式</label>
           <select id="captureMode">
@@ -415,7 +419,7 @@
           <button id="authorizeCapture" type="button" class="button secondary">授权原生采集</button>
         </section>
         <div class="settings-note">
-          接口地址、采样周期、保留天数及子进程范围可在
+          接口地址、采样周期及子进程范围可在
           <code>config.local.json</code> 中设置，修改后重启生效。接口密钥通过
           <code>MIHOMO_SECRET</code> 环境变量提供。
         </div>

@@ -90,7 +90,26 @@ internal static class NetwatchGuiSmoke
                 while (DateTime.UtcNow < deadline && await window.Browser.CoreWebView2.ExecuteScriptAsync("document.querySelector('#startupToggle').disabled") == "true") await Task.Delay(100);
                 if (await window.Browser.CoreWebView2.ExecuteScriptAsync("document.querySelector('#startupToggle').disabled") != "false")
                     throw new Exception("Startup setting did not recover after retry.");
+                if (await window.Browser.CoreWebView2.ExecuteScriptAsync("document.querySelector('#retentionDays').type === 'number' && document.querySelector('#retentionDays').min === '1' && document.querySelector('#retentionDays').max === '365'") != "true")
+                    throw new Exception("Retention is not a bounded editable number field.");
+                await window.Browser.CoreWebView2.ExecuteScriptAsync("document.querySelector('#retentionDays').value='0'");
+                if (await window.Browser.CoreWebView2.ExecuteScriptAsync("document.querySelector('#retentionDays').checkValidity()") != "false")
+                    throw new Exception("Retention field accepted zero days.");
+                await window.Browser.CoreWebView2.ExecuteScriptAsync("document.querySelector('#retentionDays').value='7'; document.querySelector('#settingsForm').requestSubmit()");
+                deadline = DateTime.UtcNow.AddSeconds(5);
+                while (DateTime.UtcNow < deadline && await window.Browser.CoreWebView2.ExecuteScriptAsync("document.querySelector('#settingsDialog').open") == "true") await Task.Delay(100);
+                if (await window.Browser.CoreWebView2.ExecuteScriptAsync("document.querySelector('#settingsDialog').open") != "false")
+                    throw new Exception("Retention setting did not save.");
+                await Task.Delay(500);
+                await window.Browser.CoreWebView2.ExecuteScriptAsync("document.querySelector('#settingsButton').click()");
+                if (await window.Browser.CoreWebView2.ExecuteScriptAsync("document.querySelector('#retentionDays').value === '7' && document.querySelector('#retentionHelp').textContent.includes('deleted data')") != "true")
+                    throw new Exception("Saved retention or English cleanup guidance was not shown.");
+                using (FileStream image = File.Create(Path.ChangeExtension(args[3], ".settings.png")))
+                    await window.Browser.CoreWebView2.CapturePreviewAsync(CoreWebView2CapturePreviewImageFormat.Png, image);
                 await window.Browser.CoreWebView2.ExecuteScriptAsync("document.querySelector('#closeSettings').click()");
+                await window.Browser.CoreWebView2.ExecuteScriptAsync("document.querySelector('#range').value='6h'; document.querySelector('#range').dispatchEvent(new Event('change'))");
+                if (await window.Browser.CoreWebView2.ExecuteScriptAsync("document.querySelector('#range').value === '6h' && document.querySelector('#range option:checked').textContent === 'Last 6 hours'") != "true")
+                    throw new Exception("Six-hour range was not selectable in English.");
                 await window.Browser.CoreWebView2.ExecuteScriptAsync("document.querySelector('#language').value='en'; document.querySelector('#language').dispatchEvent(new Event('change'));");
                 await Task.Delay(350);
                 if (await window.Browser.CoreWebView2.ExecuteScriptAsync("document.documentElement.lang") != "\"en\"")
@@ -107,6 +126,8 @@ internal static class NetwatchGuiSmoke
                 await Task.Delay(350);
                 if (await window.Browser.CoreWebView2.ExecuteScriptAsync("document.documentElement.lang") != "\"zh-CN\"")
                     throw new Exception("Chinese language selection failed.");
+                if (await window.Browser.CoreWebView2.ExecuteScriptAsync("document.querySelector('#range option:checked').textContent === '最近 6 小时' && document.querySelector('#retentionHelp').textContent.includes('缩短期限')") != "true")
+                    throw new Exception("Six-hour range or retention guidance did not follow Chinese selection.");
                 if (!window.IsLocal(args[0] + "/api/health") || window.IsLocal("https://example.invalid/") || window.IsLocal("file:///C:/Windows/win.ini"))
                     throw new Exception("Desktop navigation isolation failed.");
                 window.Browser.CoreWebView2.Navigate("https://example.invalid/");

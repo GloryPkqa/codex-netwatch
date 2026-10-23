@@ -78,7 +78,7 @@ export function createDiagnostics(config, store, monitor, now = Date.now()) {
             ? 'local_http'
             : 'unavailable',
       intervalMs: numeric(config.intervalMs),
-      retentionDays: numeric(config.retentionDays),
+      retentionDays: numeric(status.retentionDays ?? config.retentionDays),
       connections: numeric(status.connections),
       identifiedCodexConnections: numeric(status.codexConnections),
       unidentifiedConnections: numeric(status.unknownConnections),

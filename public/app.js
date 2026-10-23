@@ -528,7 +528,10 @@ function renderDiagnostics(s) {
       return div;
     }),
   );
-  if (!$('settingsDialog').open) $('threshold').value = s.alertMBPerMinute;
+  if (!$('settingsDialog').open) {
+    $('threshold').value = s.alertMBPerMinute;
+    $('retentionDays').value = s.retentionDays;
+  }
 }
 let captureBusy = false;
 function captureName(active) {
@@ -862,10 +865,13 @@ $('settingsForm').addEventListener('submit', async (event) => {
   try {
     await api('/api/settings', {
       method: 'POST',
-      body: JSON.stringify({ alertMBPerMinute: Number($('threshold').value) }),
+      body: JSON.stringify({
+        alertMBPerMinute: Number($('threshold').value),
+        retentionDays: Number($('retentionDays').value),
+      }),
     });
     $('settingsDialog').close();
-    toast(t('提醒阈值已保存'));
+    toast(t('监控设置已保存'));
     refreshNow();
   } catch (error) {
     toast(error.message);

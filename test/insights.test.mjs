@@ -98,6 +98,31 @@ function controlledMonitor(t, store) {
   };
 }
 
+test('saved retention survives a new database connection and prunes on the next poll', async (t) => {
+  const { store, dir } = setup(t);
+  store.record(sample(60000));
+  const { monitor, tick } = controlledMonitor(t, store);
+  await tick({ advance: 10 * 86400000 });
+  assert.equal(store.db.prepare('SELECT COUNT(*) AS n FROM samples WHERE at=60000').get().n, 1);
+  monitor.setRetentionDays(7);
+  assert.equal(monitor.status().retentionDays, 7);
+  const reopened = new Store(dir);
+  const restarted = new Monitor({ demo: true, retentionDays: 30, alertMBPerMinute: 100 }, reopened);
+  try {
+    assert.equal(restarted.status().retentionDays, 7);
+  } finally {
+    restarted.stop();
+    reopened.close();
+  }
+  await tick();
+  assert.equal(store.db.prepare('SELECT COUNT(*) AS n FROM samples WHERE at=60000').get().n, 0);
+  assert.ok(store.db.prepare('SELECT COUNT(*) AS n FROM samples').get().n > 0);
+  monitor.setRetentionDays(30);
+  await tick();
+  assert.equal(store.db.prepare('SELECT COUNT(*) AS n FROM samples WHERE at=60000').get().n, 0);
+  assert.equal(store.db.prepare('PRAGMA integrity_check').get().integrity_check, 'ok');
+});
+
 test('v2 migration adds insights tables while preserving bytes and integrity', (t) => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'netwatch-migration-'));
   let store = new Store(dir);

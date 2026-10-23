@@ -10,7 +10,8 @@ A local dashboard for Codex network usage, process attribution, and session acti
 
 ## Features
 
-- Live upload/download rates, local history, time filters, and CSV export.
+- Live upload/download rates, local history, time filters (including the last 6 hours), and CSV export.
+- Keep 1–365 days of network history, with a retention period you can change in Settings.
 - Codex-only process rankings by default, with an explicit all-observed-process comparison.
 - Windows ETW capture for direct TCP/UDP, IPv4/IPv6 and short-lived connections; automatic or manual source selection with no double counting.
 - Upload/download burst detection, sustained-upload findings, and recorded collection gaps.
@@ -66,6 +67,8 @@ Native capture counts new events from helper startup and retains connections tha
 ## Configuration and troubleshooting
 
 Start with **Settings → Traffic capture source** and **Connection help**. Native capture requires administrator authorization for the helper each run, without elevating the dashboard or installing a service. Startup at sign-in does not automatically request elevation. Mihomo mode supports automatic discovery of supported local Clash Verge configurations and Windows named pipes. For manual proxy setup, use the **controller port**, not the HTTP / SOCKS proxy port.
+
+In **Settings → Data retention**, enter how many days to keep and save. Your choice survives restarts and takes effect on the next successful collection. Shortening the period deletes older network records and alerts; extending it cannot bring deleted data back. Session-log token counters are separate from network history retention.
 
 Copy `config.example.json` to `config.local.json`, edit it, then restart. Environment overrides include `CODEX_FLOW_CONTROLLER`, `MIHOMO_SECRET`, `CODEX_HOME`, `CODEX_FLOW_PORT`, and `CODEX_FLOW_DATA_DIR`.
 

@@ -12,6 +12,8 @@ Use the proxy's **external-controller address**, not its HTTP/SOCKS proxy port o
 
 ## Local configuration
 
+**Settings → Data retention** accepts 1–365 whole days. Save without restarting; the next successful collection cleans history outside the new window. Shortening retention deletes older network records and alerts; increasing it cannot restore deleted data. The saved selection takes precedence over `retentionDays` in the configuration file, which is the default for a profile without a saved choice. Session-log counters remain independent of network history retention. The time menu also offers **Last 6 hours** for the dashboard and CSV export.
+
 Copy `config.example.json` to `config.local.json`, edit it, and restart. The file is ignored by Git. Keep credentials and private paths out of issue reports.
 
 | Setting              | Default     | Meaning                                                                        |
@@ -20,7 +22,7 @@ Copy `config.example.json` to `config.local.json`, edit it, and restart. The fil
 | `port`               | `43128`     | Dashboard port; binds only to `127.0.0.1`.                                     |
 | `codexHome`          | `~/.codex`  | Local session database/log directory; an empty string uses the default.        |
 | `intervalMs`         | `1000`      | Poll interval, from 500 to 10000 ms.                                           |
-| `retentionDays`      | `30`        | Network history and alert retention, from 1 to 365 days.                       |
+| `retentionDays`      | `30`        | Default network history/alert retention, 1–365 days; a saved UI choice takes priority. |
 | `alertMBPerMinute`   | `100`       | Decimal MB observed in 60 seconds. A threshold saved in the UI takes priority. |
 | `includeDescendants` | `true`      | Include processes whose ancestry leads to an identified Codex process.         |
 | `processNames`       | See example | Exact, case-insensitive process names. No domain or substring guessing.        |

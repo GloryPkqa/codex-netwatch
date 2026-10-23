@@ -26,6 +26,9 @@ export class Monitor {
     this.gaps = new Map();
     this.diagnostics = { polls: 0, failures: 0, reconnects: 0, lastPollMs: 0, maxPollMs: 0 };
     this.alertMBPerMinute = store.get('alertMBPerMinute', config.alertMBPerMinute);
+    const savedRetention = store.get('retentionDays', config.retentionDays);
+    this.retentionDays = Number.isInteger(savedRetention) && savedRetention >= 1 && savedRetention <= 365
+      ? savedRetention : config.retentionDays;
   }
   openGap(reason, from) {
     if (!this.gaps.has(reason)) this.gaps.set(reason, this.store.openGap?.(reason, from));
@@ -172,7 +175,7 @@ export class Monitor {
         this.lastAlert = now;
       }
       if (now - this.lastPrune >= 3600000) {
-        this.store.prune(this.config.retentionDays, now);
+        this.store.prune(this.retentionDays, now);
         this.lastPrune = now;
       }
     } catch (error) {
@@ -232,7 +235,7 @@ export class Monitor {
       endpoint: this.source.endpoint,
       observer: this.config.demo ? 'demo' : this.observer.status,
       sessionReader: this.config.demo ? 'demo' : this.sessions.status,
-      retentionDays: this.config.retentionDays,
+      retentionDays: this.retentionDays,
       intervalMs: this.config.intervalMs,
       alertMBPerMinute: this.alertMBPerMinute,
       upRate: live ? s.codexUp / elapsed : null,
@@ -253,6 +256,12 @@ export class Monitor {
   setThreshold(value) {
     this.alertMBPerMinute = value;
     this.store.set('alertMBPerMinute', value);
+  }
+  setRetentionDays(value) {
+    this.store.set('retentionDays', value);
+    this.retentionDays = value;
+    // Apply the new window on the next successful poll without restarting capture.
+    this.lastPrune = -Infinity;
   }
   async setCapture(mode, authorize = false) {
     if (this.config.demo || !this.source.setMode) throw new Error('capture_unavailable');
