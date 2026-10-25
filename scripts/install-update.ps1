@@ -162,7 +162,7 @@ try {
   # and the post-query exit checks keep the identity bound across the CIM lookup.
   $hostIdentity = Get-CimInstance Win32_Process -Filter ('ProcessId=' + [int]$p.hostPid)
   $collectorIdentity = Get-CimInstance Win32_Process -Filter ('ProcessId=' + [int]$p.collectorPid)
-  if ($hostIdentity.ExecutablePath -ne $exe -or $hostProcess.HasExited) { throw 'Running tray executable identity changed' }
+  if ($hostIdentity.ExecutablePath -ne $exe -or $hostProcess.HasExited) { throw ('Running tray executable identity changed; expected=' + $exe + '; actual=' + $hostIdentity.ExecutablePath + '; exited=' + $hostProcess.HasExited) }
   if ($collectorIdentity.ExecutablePath -ne (Join-Path $installRoot 'runtime\node.exe') -or $collectorProcess.HasExited) { throw 'Running collector executable identity changed' }
   $identityDeadline = [DateTime]::UtcNow.AddSeconds(12)
   do {
