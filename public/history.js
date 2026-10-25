@@ -246,7 +246,7 @@ export function createUpdatePanel({ api, t, currentVersion, toast }) {
     $('updateNotes').hidden = !data.notes;
     $('updateNotes').textContent = data.notes || '';
     // Only the fixed upstream release route becomes a clickable external link.
-    const validUrl = /^https:\/\/github\.com\/GloryPkqa\/codex-netwatch\/releases(?:\/tag\/v[0-9]+\.[0-9]+\.[0-9]+)?$/.test(data.url || '');
+    const validUrl = /^https:\/\/github\.com\/GloryPkqa\/codex-netwatch\/releases(?:\/tag\/v[0-9]+\.[0-9]+\.[0-9]+|\/latest)?$/.test(data.url || '');
     $('updateRelease').hidden = !validUrl;
     if (validUrl) $('updateRelease').href = data.url;
     let message;
