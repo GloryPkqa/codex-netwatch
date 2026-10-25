@@ -55,7 +55,7 @@ async function install(fixture, current) {
   const lock = JSON.parse(fs.readFileSync(path.join(data, 'collector.lock')));
   // After an upgrade the new host's PID is read from its collector command environment
   // indirectly via the exact executable path; there is only one fixture instance.
-  const pidResult = spawnSync('powershell.exe', ['-NoProfile', '-Command', '(Get-CimInstance Win32_Process -Filter "Name=\'Codex-Netwatch.exe\'" | Where-Object { $_.ExecutablePath -eq $env:NETWATCH_FIXTURE_EXE }).ProcessId'],
+  const pidResult = spawnSync('powershell.exe', ['-NoProfile', '-Command', '(Get-CimInstance Win32_Process -Filter "Name=\'Codex-Netwatch.exe\'" | Where-Object { $_.ExecutablePath -and [IO.Path]::GetFullPath($_.ExecutablePath) -eq [IO.Path]::GetFullPath($env:NETWATCH_FIXTURE_EXE) }).ProcessId'],
     { env: { ...env, NETWATCH_FIXTURE_EXE: exe }, windowsHide: true, encoding: 'utf8' });
   const pids = pidResult.stdout.trim().split(/\s+/).map(Number);
   assert.equal(pids.length, 1); assert.ok(pids[0] > 0);
