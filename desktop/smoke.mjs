@@ -17,7 +17,7 @@ assert.ok(fs.existsSync(exe), 'Build the portable ZIP before running this test.'
 const data = fs.mkdtempSync(path.join(os.tmpdir(), 'netwatch-portable-'));
 const pause = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 const children = [];
-let env, port, observedToken;
+let env, port, observedToken, smokeError;
 async function freePort() {
   const server = http.createServer();
   await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
@@ -148,6 +148,9 @@ try {
   console.log(
     'Portable smoke: bundled runtime, own collector startup/stop/restart/exit, single instance, lock cleanup, and foreign-service safety passed.',
   );
+} catch (error) {
+  smokeError = error;
+  throw error;
 } finally {
   // Signal the exact tray/data-directory group before terminating any remaining test hosts.
   try {
@@ -170,5 +173,9 @@ try {
   }
   for (const child of children) if (child.exitCode === null) child.kill();
   await pause(150);
-  fs.rmSync(data, { recursive: true, force: true });
+  try { fs.rmSync(data, { recursive: true, force: true, maxRetries: 10, retryDelay: 300 }); }
+  catch (error) {
+    if (!smokeError) throw error;
+    console.error(`Test cleanup also failed: ${error.code}`);
+  }
 }
