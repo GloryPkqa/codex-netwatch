@@ -10,6 +10,7 @@ A local dashboard for Codex network usage, process attribution, and session acti
 
 ## Features
 
+- Daily/monthly traffic budgets, remaining usage, early warnings and the busiest recorded hours in the last 24 hours. Optional Windows tray budget alerts continue with the window closed.
 - Live upload/download rates, local history, time filters (including the last 6 hours), and CSV export.
 - Keep 1–365 days of network history, with a retention period you can change in Settings.
 - Codex-only process rankings by default, with an explicit all-observed-process comparison.
@@ -65,6 +66,10 @@ Open [127.0.0.1:43128](http://127.0.0.1:43128). On Windows, `start.cmd` starts t
 Native capture counts new events from helper startup and retains connections that close between dashboard polls. It includes loopback process traffic and shows destination IPs without DNS lookups. ETW buffer loss is recorded as a gap. Mihomo snapshots can miss short connections and closing bytes and establish a baseline on first attach/reconnect. Source changes mark gaps; historical totals can include different measurement methods. Offline traffic is not backfilled, and none of these counters is a VPN bill or interface total. MB and GB use decimal units. See [native capture details](docs/NATIVE_CAPTURE.md).
 
 ## Configuration and troubleshooting
+
+In **Settings → Daily and monthly budgets**, enter decimal GB limits (0 disables a budget), an early-warning percentage and a scope: Codex only or all observed processes. The budget panel always shows the current calendar day/month, independently of the history filter. Each threshold warns once per limit, scope and period; a jump straight past 100% records the exceeded warning only. Changing a limit evaluates the recorded usage immediately. Enable budget desktop alerts to receive Windows tray balloons while the desktop host is running; OS notification settings can suppress delivery. Browser notification permissions are separate.
+
+Budgets count uploads plus downloads that Netwatch recorded, including the active source's local-connection semantics. They do not measure a data-plan bill or subscription allowance and never block connections. The database fixes its calendar zone from the system on first budget upgrade; the panel displays it. Daily/monthly counters roll over at local midnight/the first day of the month in that zone. Daily aggregates survive detailed-history pruning and are retained until the data directory is removed. Existing retained samples are imported once; already-deleted or unobserved traffic is not recovered. **Version 0.4 upgrades the database to schema 4: back up `data/` before upgrading; use that backup if returning to an older version.**
 
 Start with **Settings → Traffic capture source** and **Connection help**. Native capture requires administrator authorization for the helper each run, without elevating the dashboard or installing a service. Startup at sign-in does not automatically request elevation. Mihomo mode supports automatic discovery of supported local Clash Verge configurations and Windows named pipes. For manual proxy setup, use the **controller port**, not the HTTP / SOCKS proxy port.
 

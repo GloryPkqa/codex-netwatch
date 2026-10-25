@@ -10,6 +10,32 @@
   --amber: #edc185;
   --font: Inter, 'Segoe UI', 'Microsoft YaHei', sans-serif;
 }
+.budget-panel { margin: 0 0 24px; }
+.budget-grid { display: grid; grid-template-columns: 1fr 1fr 1.1fr; gap: 16px; margin: 0 22px; }
+.budget-panel > .help { margin: 12px 22px 20px; }
+.budget-card { padding: 16px; background: var(--bg); border: 1px solid var(--line); border-radius: 8px; min-width: 0; }
+.budget-card h3 { font-size: 13px; font-weight: 500; margin: 0; }
+.budget-card-heading { display: flex; justify-content: space-between; gap: 8px; align-items: center; }
+.budget-amount { margin: 14px 0 10px; overflow-wrap: anywhere; }
+.budget-amount strong { font-size: 25px; font-weight: 550; letter-spacing: -0.7px; }
+.budget-amount span { color: var(--muted); font-size: 12px; }
+.budget-card progress { width: 100%; height: 6px; appearance: none; border: 0; border-radius: 4px; overflow: hidden; background: var(--line); }
+.budget-card progress::-webkit-progress-bar { background: var(--line); }
+.budget-card progress::-webkit-progress-value { background: var(--mint); }
+.budget-card progress::-moz-progress-bar { background: var(--mint); }
+.budget-card[data-state="warning"] progress::-webkit-progress-value,
+.budget-card[data-state="exceeded"] progress::-webkit-progress-value { background: var(--amber); }
+.budget-card[data-state="warning"] .tiny-tag,
+.budget-card[data-state="exceeded"] .tiny-tag { color: var(--amber); }
+.budget-card .help { margin-bottom: 0; }
+.budget-peaks ol { padding: 0; margin: 14px 0 0; list-style: none; }
+.budget-peaks li { display: flex; justify-content: space-between; gap: 8px; color: var(--muted); font-size: 12px; margin: 7px 0; }
+.budget-peaks strong { color: var(--text); font-weight: 500; }
+.budget-inputs { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.budget-notify { display: flex; align-items: center; gap: 8px; }
+.budget-notify input { width: auto; margin: 0; }
+@media (max-width: 1200px) { .budget-grid { grid-template-columns: 1fr 1fr; } .budget-peaks { grid-column: 1 / -1; } }
+@media (max-width: 600px) { .budget-grid, .budget-inputs { grid-template-columns: 1fr; } }
 * {
   box-sizing: border-box;
 }

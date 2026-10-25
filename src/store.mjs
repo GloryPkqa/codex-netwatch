@@ -1,13 +1,14 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
+import { DEFAULT_BUDGET, createBudgetCalendar, budgetPeriod } from './budgets.mjs';
 
 export class Store {
   constructor(dir) {
     fs.mkdirSync(dir, { recursive: true });
     this.db = new DatabaseSync(path.join(dir, 'monitor.sqlite'));
     const version = this.db.prepare('PRAGMA user_version').get().user_version;
-    if (version > 3) {
+    if (version > 4) {
       this.db.close();
       throw new Error('Database was created by a newer Codex Netwatch version');
     }
@@ -61,7 +62,7 @@ export class Store {
         UPDATE buckets SET last_at=MIN(minute+59999, (SELECT last_seen FROM connections WHERE id=connection_id));
         PRAGMA user_version=3;
         COMMIT;`);
-    } else this.db.exec('PRAGMA user_version=3');
+    }
     this.insertSample = this.db.prepare('INSERT OR IGNORE INTO samples VALUES (?,?,?,?,?,?,?,?,?)');
     this.insertConnection = this.db.prepare(
       `INSERT INTO connections VALUES (?,?,?,?,?,?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET host=excluded.host, process=excluded.process,pid=excluded.pid,scope=excluded.scope,evidence=excluded.evidence,last_seen=excluded.last_seen,rule=excluded.rule`,
@@ -69,6 +70,33 @@ export class Store {
     this.insertBucket = this.db.prepare(
       `INSERT INTO buckets (minute,connection_id,scope,up,down,last_at) VALUES (?,?,?,?,?,?) ON CONFLICT(minute,connection_id,scope) DO UPDATE SET up=up+excluded.up, down=down+excluded.down,last_at=MAX(last_at,excluded.last_at)`,
     );
+    this.calendar = createBudgetCalendar(this.get('budgetTimeZone', undefined));
+    this.db.exec(`CREATE TABLE IF NOT EXISTS daily_usage (
+      day TEXT PRIMARY KEY, codex_up INTEGER NOT NULL, codex_down INTEGER NOT NULL,
+      all_up INTEGER NOT NULL, all_down INTEGER NOT NULL, first_at INTEGER NOT NULL, last_at INTEGER NOT NULL
+    );
+    CREATE TABLE IF NOT EXISTS budget_notifications (key TEXT PRIMARY KEY, at INTEGER NOT NULL);`);
+    this.insertDaily = this.db.prepare(`INSERT INTO daily_usage VALUES (?,?,?,?,?,?,?)
+      ON CONFLICT(day) DO UPDATE SET codex_up=codex_up+excluded.codex_up, codex_down=codex_down+excluded.codex_down,
+      all_up=all_up+excluded.all_up, all_down=all_down+excluded.all_down,
+      first_at=MIN(first_at,excluded.first_at),last_at=MAX(last_at,excluded.last_at)`);
+    if (!this.get('budgetLedgerReady', false)) {
+      this.db.exec('BEGIN');
+      try {
+        const days = new Map();
+        for (const row of this.db.prepare('SELECT at,codex_up,codex_down,all_up,all_down FROM samples ORDER BY at').iterate()) {
+          const day = this.calendar.day(row.at);
+          const total = days.get(day) || { day, codex_up: 0, codex_down: 0, all_up: 0, all_down: 0, first_at: row.at, last_at: row.at };
+          for (const key of ['codex_up', 'codex_down', 'all_up', 'all_down']) total[key] += row[key];
+          total.last_at = row.at;
+          days.set(day, total);
+        }
+        for (const row of days.values()) this.insertDaily.run(row.day, row.codex_up, row.codex_down, row.all_up, row.all_down, row.first_at, row.last_at);
+        this.set('budgetTimeZone', this.calendar.timeZone);
+        this.set('budgetLedgerReady', true);
+        this.db.exec('PRAGMA user_version=4; COMMIT');
+      } catch (error) { this.db.exec('ROLLBACK'); this.db.close(); throw error; }
+    } else this.db.exec('PRAGMA user_version=4');
   }
   record(sample) {
     this.db.exec('BEGIN');
@@ -88,6 +116,7 @@ export class Store {
         this.db.exec('COMMIT');
         return false;
       }
+      this.insertDaily.run(this.calendar.day(sample.at), sample.codexUp, sample.codexDown, sample.allUp, sample.allDown, sample.at, sample.at);
       for (const row of sample.rows) {
         this.insertConnection.run(
           row.key,
@@ -178,7 +207,7 @@ export class Store {
     this.db.prepare('INSERT INTO alerts(at,message) VALUES (?,?)').run(at, message);
   }
   alerts() {
-    return this.db.prepare('SELECT * FROM alerts ORDER BY at DESC LIMIT 20').all();
+    return this.db.prepare('SELECT * FROM alerts ORDER BY at DESC,id DESC LIMIT 20').all();
   }
   set(key, value) {
     this.db.prepare('INSERT OR REPLACE INTO settings VALUES (?,?)').run(key, JSON.stringify(value));
@@ -189,6 +218,40 @@ export class Store {
   }
   firstAt() {
     return this.db.prepare('SELECT MIN(at) AS at FROM samples').get().at;
+  }
+  budgetSummary(now = Date.now(), settings = this.get('budget', DEFAULT_BUDGET), includePeaks = true) {
+    const day = this.calendar.day(now), month = day.slice(0, 7);
+    const rows = this.db.prepare('SELECT * FROM daily_usage WHERE day>=? AND day<=? ORDER BY day').all(`${month}-01`, day);
+    const prefix = settings.scope === 'all' ? 'all' : 'codex';
+    const peaks = includePeaks ? this.db.prepare(`SELECT CAST(at/3600000 AS INTEGER)*3600000 AS at,
+      SUM(${prefix}_up+${prefix}_down) AS bytes FROM samples WHERE at>=? AND at<=?
+      GROUP BY 1 HAVING bytes>0 ORDER BY bytes DESC,at DESC LIMIT 3`).all(now - 86400000, now) : [];
+    return { settings, timeZone: this.calendar.timeZone,
+      firstObservedAt: this.db.prepare('SELECT MIN(first_at) AS at FROM daily_usage').get().at,
+      day: budgetPeriod('day', day, rows.filter((r) => r.day === day), settings),
+      month: budgetPeriod('month', month, rows, settings), peaks };
+  }
+  checkBudgets(now = Date.now(), settings = this.get('budget', DEFAULT_BUDGET)) {
+    if (!settings.dailyGB && !settings.monthlyGB) return;
+    const summary = this.budgetSummary(now, settings, false);
+    this.db.exec('BEGIN');
+    try {
+      for (const period of [summary.day, summary.month]) {
+        if (!period.enabled) continue;
+        // A jump straight past 100% produces the exceeded alert only, not two
+        // simultaneous notifications. Persist both thresholds as acknowledged.
+        const reached = [settings.warnPercent, 100].filter((pct) => period.usedBytes >= period.limitBytes * pct / 100);
+        let fresh = false;
+        for (const pct of reached) {
+          const key = JSON.stringify([period.kind, period.key, settings.scope, period.limitBytes, pct]);
+          fresh = this.db.prepare('INSERT OR IGNORE INTO budget_notifications VALUES (?,?)').run(key, now).changes > 0 || fresh;
+        }
+        if (fresh) this.alert(now, JSON.stringify({ type: 'budget', kind: period.kind, key: period.key,
+          scope: settings.scope, usedGB: (period.usedBytes / 1e9).toFixed(2), limitGB: period.limitBytes / 1e9,
+          percent: Math.floor(period.ratio * 100), exceeded: period.state === 'exceeded' }));
+      }
+      this.db.exec('COMMIT');
+    } catch (error) { this.db.exec('ROLLBACK'); throw error; }
   }
   lastAt() {
     return this.db.prepare('SELECT MAX(at) AS at FROM samples').get().at;

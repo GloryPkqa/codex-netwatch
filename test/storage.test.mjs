@@ -12,11 +12,11 @@ test('an older app refuses to overwrite a newer database schema version', (t) =>
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'codex-flow-version-'));
   t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   const db = new DatabaseSync(path.join(dir, 'monitor.sqlite'));
-  db.exec('PRAGMA user_version=4');
+  db.exec('PRAGMA user_version=5');
   db.close();
   assert.throws(() => new Store(dir), /newer Codex Netwatch version/);
   const check = new DatabaseSync(path.join(dir, 'monitor.sqlite'));
-  assert.equal(check.prepare('PRAGMA user_version').get().user_version, 4);
+  assert.equal(check.prepare('PRAGMA user_version').get().user_version, 5);
   check.close();
 });
 function setup(t) {
@@ -157,7 +157,7 @@ test('version 1 databases migrate without changing recorded bytes or samples', (
   legacy.exec('ALTER TABLE buckets DROP COLUMN last_at; PRAGMA user_version=1');
   legacy.close();
   store = new Store(dir);
-  assert.equal(store.db.prepare('PRAGMA user_version').get().user_version, 3);
+  assert.equal(store.db.prepare('PRAGMA user_version').get().user_version, 4);
   assert.equal(store.totals(0, 200000).codex_up, 200);
   assert.equal(store.connections(0, 200000, 'codex')[0].up, 200);
   assert.ok(store.connections(60000, 119999, 'codex')[0].last_seen <= 119999);

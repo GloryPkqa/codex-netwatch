@@ -4,6 +4,7 @@ import { ProcessObserver } from './processes.mjs';
 import { SessionReader } from './sessions.mjs';
 import { DemoSource } from './demo.mjs';
 import { AnomalyDetector } from './anomalies.mjs';
+import { DEFAULT_BUDGET, validateBudget } from './budgets.mjs';
 
 export class Monitor {
   constructor(config, store, { now = Date.now } = {}) {
@@ -26,6 +27,7 @@ export class Monitor {
     this.gaps = new Map();
     this.diagnostics = { polls: 0, failures: 0, reconnects: 0, lastPollMs: 0, maxPollMs: 0 };
     this.alertMBPerMinute = store.get('alertMBPerMinute', config.alertMBPerMinute);
+    this.budgetSettings = validateBudget(store.get('budget', DEFAULT_BUDGET));
     const savedRetention = store.get('retentionDays', config.retentionDays);
     this.retentionDays = Number.isInteger(savedRetention) && savedRetention >= 1 && savedRetention <= 365
       ? savedRetention : config.retentionDays;
@@ -156,6 +158,7 @@ export class Monitor {
       this.latest = sample;
       this.lastAt = now;
       this.state = 'connected';
+      if (inserted !== false) this.store.checkBudgets?.(now, this.budgetSettings);
       this.controllerIssue = null;
       this.error = '';
       if (inserted !== false)
@@ -256,6 +259,12 @@ export class Monitor {
   setThreshold(value) {
     this.alertMBPerMinute = value;
     this.store.set('alertMBPerMinute', value);
+  }
+  setBudgetSettings(value) {
+    const validated = validateBudget(value);
+    this.store.set('budget', validated);
+    this.budgetSettings = validated;
+    this.store.checkBudgets?.(this.now(), validated);
   }
   setRetentionDays(value) {
     this.store.set('retentionDays', value);

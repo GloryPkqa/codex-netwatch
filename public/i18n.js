@@ -1,6 +1,42 @@
 // Source-language keys keep the Chinese copy next to its English translation.
 // Values are plain text: never inject translations as HTML.
 export const messages = Object.freeze({
+  流量预算: 'Traffic budgets',
+  '预算桌面提醒（托盘运行时有效）': 'Budget desktop alerts (while the tray app is running)',
+  每日与每月预算独立于上方时间筛选: 'Daily and monthly budgets are independent of the time filter above',
+  设置预算: 'Set budgets',
+  今日: 'Today',
+  本月: 'This month',
+  未设置预算: 'No budget set',
+  预算内: 'Within budget',
+  接近预算: 'Near budget',
+  已达预算: 'Budget reached',
+  每日预算使用比例: 'Daily budget used',
+  每月预算使用比例: 'Monthly budget used',
+  近24小时高用量时段: 'Busiest recorded hours in the last 24 hours',
+  '近 24 小时高用量时段': 'Busiest recorded hours in the last 24 hours',
+  '仅累计已采集的上传与下载；采集缺口不补算，也不是套餐账单。预算只提醒，不断网。每日汇总独立保存，清理详细历史不会减少预算累计。': 'Counts recorded uploads and downloads only. Gaps are not backfilled; this is not your data-plan bill. Budgets warn without blocking traffic. Daily summaries are kept separately, so pruning detailed history does not reduce budget usage.',
+  每日与每月预算: 'Daily and monthly budgets',
+  预算统计范围: 'Budget scope',
+  '仅 Codex': 'Codex only',
+  '每日预算（GB）': 'Daily budget (GB)',
+  '每月预算（GB）': 'Monthly budget (GB)',
+  '预警比例（%）': 'Early warning (%)',
+  '0 表示关闭该预算。达到预警比例和 100% 时分别提醒一次；每天及每月 1 日按预算时区重新累计。': '0 disables a budget. Warn once at the early-warning threshold and at 100%. Counters reset each day and on the first of each month in the budget time zone.',
+  '{scope} · {zone} · 不受上方时间筛选影响': '{scope} · {zone} · Independent of the time filter above',
+  已观测: 'recorded',
+  ' 已观测': ' recorded',
+  '超出 {amount} · 已用 {percent}%': '{amount} over · {percent}% used',
+  '剩余 {amount} · 已用 {percent}%': '{amount} left · {percent}% used',
+  设置预算后可查看剩余流量和接收提醒: 'Set a budget to see remaining traffic and receive alerts',
+  '预算记录始于 {time}；此前未保留的流量不计入。': 'Budget records begin at {time}; earlier unretained traffic is not included.',
+  '预算时区：{zone}（首次运行时固定）': 'Budget time zone: {zone} (fixed on first run)',
+  '预算应为 0–1000000 GB，预警比例应为 1–99 的整数': 'Budgets must be 0–1000000 GB; the early warning must be a whole percentage from 1 to 99',
+  每日: 'Daily',
+  每月: 'Monthly',
+  '预算已用满': 'budget reached',
+  '预算即将用满': 'budget warning',
+  '{period} {scope} {state}（{key}）：已观测 {used} / {limit} GB，已用 {percent}%。': '{period} {scope} {state} ({key}): recorded {used} / {limit} GB, {percent}% used.',
   全部已观测连接: 'All observed connections',
   全部已观测进程: 'All observed processes',
   全部已观测进程流量排行: 'All observed traffic by process',
@@ -486,6 +522,16 @@ export function captureStaticTranslations(root) {
 
 // Translate old persisted alerts as well as new ones, without rewriting history.
 export function translateAlert(message, language) {
+  try {
+    const budget = JSON.parse(message);
+    if (budget?.type === 'budget' && ['day', 'month'].includes(budget.kind) && ['codex', 'all'].includes(budget.scope))
+      return translate('{period} {scope} {state}（{key}）：已观测 {used} / {limit} GB，已用 {percent}%。', language, {
+        period: translate(budget.kind === 'day' ? '每日' : '每月', language),
+        scope: translate(budget.scope === 'codex' ? '仅 Codex' : '全部已观测进程', language),
+        state: translate(budget.exceeded ? '预算已用满' : '预算即将用满', language),
+        key: budget.key, used: budget.usedGB, limit: budget.limitGB, percent: budget.percent,
+      });
+  } catch { /* Older alerts are plain text. */ }
   const match = /^Codex 最近 60 秒已观测到 ([\d.]+) MB，超过 ([\d.]+) MB 提醒阈值。$/.exec(message);
   return match
     ? translate('Codex 最近 60 秒已观测到 {amount} MB，超过 {threshold} MB 提醒阈值。', language, {

@@ -214,8 +214,51 @@ function render(data) {
   renderSessions(data.sessions);
   renderDiagnostics(s);
   renderAlerts(data.alerts);
+  renderBudgets(data.budget);
   renderInsights(data.insights);
   drawChart();
+}
+function renderBudgets(data) {
+  if (!data) return;
+  const settings = data.settings;
+  $('budgetContext').textContent = t('{scope} · {zone} · 不受上方时间筛选影响', {
+    scope: t(settings.scope === 'all' ? '全部已观测进程' : '仅 Codex'), zone: data.timeZone,
+  });
+  const states = { disabled: '未设置预算', normal: '预算内', warning: '接近预算', exceeded: '已达预算' };
+  for (const kind of ['day', 'month']) {
+    const period = data[kind];
+    $(`${kind}Budget`).dataset.state = period.state;
+    $(`${kind}BudgetState`).textContent = t(states[period.state]);
+    const amount = $(`${kind}BudgetAmount`);
+    amount.replaceChildren(node('strong', byteText(period.usedBytes)), node('span', period.enabled ? ` / ${byteText(period.limitBytes)}` : t(' 已观测')));
+    const progress = $(`${kind}BudgetProgress`);
+    progress.value = period.enabled ? Math.min(100, period.ratio * 100) : 0;
+    progress.hidden = !period.enabled;
+    progress.setAttribute('aria-valuetext', period.enabled ? `${Math.floor(period.ratio * 100)}%` : t('未设置预算'));
+    $(`${kind}BudgetDetail`).textContent = period.enabled
+      ? period.overBytes > 0 ? t('超出 {amount} · 已用 {percent}%', { amount: byteText(period.overBytes), percent: Math.floor(period.ratio * 100) })
+        : t('剩余 {amount} · 已用 {percent}%', { amount: byteText(period.remainingBytes), percent: Math.floor(period.ratio * 100) })
+      : t('设置预算后可查看剩余流量和接收提醒');
+  }
+  $('budgetPeaks').replaceChildren(...data.peaks.map((peak) => {
+    const from = new Date(peak.at).toLocaleString(locale(), { timeZone: data.timeZone, month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false });
+    const to = new Date(peak.at + 3600000).toLocaleTimeString(locale(), { timeZone: data.timeZone, hour: '2-digit', minute: '2-digit', hour12: false });
+    const item = node('li');
+    item.append(node('span', `${from}–${to}`), node('strong', byteText(peak.bytes)));
+    return item;
+  }));
+  if (!data.peaks.length) $('budgetPeaks').append(node('li', t('暂无已观测流量')));
+  $('budgetHistory').textContent = data.firstObservedAt ? t('预算记录始于 {time}；此前未保留的流量不计入。', {
+    time: new Date(data.firstObservedAt).toLocaleString(locale(), { timeZone: data.timeZone, hour12: false }),
+  }) : t('等待第一组采样');
+  $('budgetTimeZone').textContent = t('预算时区：{zone}（首次运行时固定）', { zone: data.timeZone });
+  if (!$('settingsDialog').open) {
+    $('budgetScope').value = settings.scope;
+    $('dailyGB').value = settings.dailyGB;
+    $('monthlyGB').value = settings.monthlyGB;
+    $('budgetWarn').value = settings.warnPercent;
+    $('budgetDesktopNotify').checked = settings.desktopNotify !== false;
+  }
 }
 const anomalyNames = {
   upload_burst: '突发上传',
@@ -855,6 +898,12 @@ $('settingsButton').addEventListener('click', () => {
   $('settingsDialog').showModal();
   refreshStartup();
 });
+$('budgetSettingsButton').addEventListener('click', () => {
+  $('settingsDialog').showModal();
+  $('budgetSettingsHeading').scrollIntoView({ block: 'start' });
+  $('dailyGB').focus();
+  refreshStartup();
+});
 $('closeSettings').addEventListener('click', () => $('settingsDialog').close());
 $('closeCorrelation').addEventListener('click', () => $('correlationDialog').close());
 $('correlationDialog').addEventListener('close', () => {
@@ -868,6 +917,8 @@ $('settingsForm').addEventListener('submit', async (event) => {
       body: JSON.stringify({
         alertMBPerMinute: Number($('threshold').value),
         retentionDays: Number($('retentionDays').value),
+        budget: { scope: $('budgetScope').value, dailyGB: Number($('dailyGB').value),
+          monthlyGB: Number($('monthlyGB').value), warnPercent: Number($('budgetWarn').value), desktopNotify: $('budgetDesktopNotify').checked },
       }),
     });
     $('settingsDialog').close();

@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.4.0 — 2026-10-25
+
+- Add daily and calendar-month traffic budgets, remaining/over-budget usage, early-warning thresholds and the busiest recorded hours in the last 24 hours. Choose Codex-only or all-observed-process scope; budgets are independent of the dashboard time filter.
+- Record warnings once per budget threshold and calendar period, including across restarts. The Windows tray can deliver budget notifications while the dashboard is closed, with a separate opt-out.
+- Migrate retained samples into an atomic daily aggregate ledger. Detailed-history pruning does not decrease budget totals; existing gaps and previously deleted history are never reconstructed. The calendar time zone is fixed from the host on first upgrade.
+- Upgrade the local database to schema 4. Back up data before upgrading; older applications cannot open the new schema. Daily aggregates are kept until the data directory is removed, separately from detailed-history retention.
+
 ## 0.3.2 — 2026-10-23
 
 - Add a persistent 1–365-day data retention setting, applied on the next successful collection without restarting. Show deletion behavior in both languages and report the effective value in diagnostics.

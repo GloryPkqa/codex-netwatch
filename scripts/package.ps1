@@ -1,6 +1,8 @@
+param([string]$OutputFile)
 $ErrorActionPreference = 'Stop'
 $projectRoot = Split-Path -Parent $PSScriptRoot
-$outputFile = Join-Path (Split-Path -Parent $projectRoot) 'codex-netwatch-source.zip'
+if (!$OutputFile) { $OutputFile = Join-Path (Split-Path -Parent $projectRoot) 'codex-netwatch-source.zip' }
+$outputFile = [IO.Path]::GetFullPath($OutputFile)
 # Explicit allowlist: never package user configuration, databases, logs, or .git.
 $items = @('src','public','scripts','test','desktop','docs','.github','.gitignore','.gitattributes','.prettierrc.json','.prettierignore','package.json','config.example.json','start.cmd','start-demo.cmd','README.md','README.zh-CN.md','README.en.md','CONTRIBUTING.md','SECURITY.md','LICENSE','CHANGELOG.md')
 $stageRoot = Join-Path $projectRoot 'data\package-stage'

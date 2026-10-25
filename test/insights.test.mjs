@@ -136,7 +136,7 @@ test('v2 migration adds insights tables while preserving bytes and integrity', (
   legacy.exec('DROP TABLE collection_gaps; DROP TABLE anomalies; PRAGMA user_version=2');
   legacy.close();
   store = new Store(dir);
-  assert.equal(store.db.prepare('PRAGMA user_version').get().user_version, 3);
+  assert.equal(store.db.prepare('PRAGMA user_version').get().user_version, 4);
   assert.equal(store.totals(0, 120000).codex_up, 100);
   assert.equal(store.db.prepare('PRAGMA integrity_check').get().integrity_check, 'ok');
 });

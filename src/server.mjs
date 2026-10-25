@@ -3,6 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { VERSION } from './version.mjs';
 import { createDiagnostics } from './diagnostics.mjs';
+import { validateBudget } from './budgets.mjs';
 
 export function parseRange(url, now, firstAt) {
   const ranges = {
@@ -71,6 +72,13 @@ function readBody(req, limit = 4096) {
 }
 export function createServer(config, store, monitor, shutdown) {
   let insightCache = null;
+  let budgetCache = null;
+  const budget = () => {
+    const settings = JSON.stringify(store.get('budget', null));
+    if (!budgetCache || budgetCache.settings !== settings || Date.now() - budgetCache.at >= 5000)
+      budgetCache = { settings, at: Date.now(), value: store.budgetSummary() };
+    return budgetCache.value;
+  };
   const insights = (range) => {
     const key = `${Math.floor(range.from / 60000)}:${Math.floor(range.to / 60000)}`;
     if (!insightCache || insightCache.key !== key || Date.now() - insightCache.at >= 10000)
@@ -138,6 +146,12 @@ export function createServer(config, store, monitor, shutdown) {
             if (request.retentionDays !== undefined &&
               (!Number.isInteger(request.retentionDays) || request.retentionDays < 1 || request.retentionDays > 365))
               return json(400, { error: '保留天数应为 1–365 的整数' });
+            let budget;
+            if (request.budget !== undefined) {
+              try { budget = validateBudget(request.budget); }
+              catch (error) { return json(400, { error: error.message }); }
+            }
+            if (budget) monitor.setBudgetSettings(budget);
             if (request.retentionDays !== undefined) monitor.setRetentionDays(request.retentionDays);
             monitor.setThreshold(value);
             return json(200, { ok: true });
@@ -152,6 +166,15 @@ export function createServer(config, store, monitor, shutdown) {
           return json(404, { error: 'Not found' });
         }
         if (req.method !== 'GET') return json(405, { error: 'Method not allowed' });
+        if (url.pathname === '/api/budget-notifications') {
+          if (!config.desktopToken || req.headers['x-codex-desktop-token'] !== config.desktopToken)
+            return json(403, { error: 'Desktop instance marker required' });
+          const alert = store.alerts().find((row) => {
+            try { return JSON.parse(row.message).type === 'budget'; } catch { return false; }
+          });
+          return json(200, { enabled: monitor.budgetSettings?.desktopNotify !== false,
+            latest: alert ? { id: alert.id, at: alert.at, ...JSON.parse(alert.message) } : null });
+        }
         if (url.pathname === '/api/diagnostics') {
           res.setHeader(
             'Content-Disposition',
@@ -166,6 +189,7 @@ export function createServer(config, store, monitor, shutdown) {
         if (url.pathname === '/api/dashboard') {
           return json(200, {
             status: monitor.status(),
+            budget: budget(),
             range,
             totals: store.totals(range.from, range.to),
             trend: store.trend(range.from, range.to),

@@ -27,7 +27,7 @@
         <span class="local-dot"></span> 数据只保存在本机
         <p>无云端 · 无遥测 · 无外部资源</p>
         <span class="version"
-          >v0.3.2 /
+          >v0.4.0 /
           <a
             class="version-link"
             href="https://github.com/GloryPkqa/codex-netwatch"
@@ -174,6 +174,31 @@
           <div class="metric-value" id="codexConnections">—</div>
           <div class="metric-foot" id="unknownConnections">进程匹配准备中</div>
         </article>
+      </section>
+      <section id="budgets" class="panel budget-panel" aria-labelledby="budgetHeading">
+        <div class="panel-heading">
+          <div><h2 id="budgetHeading">流量预算</h2><p id="budgetContext">每日与每月预算独立于上方时间筛选</p></div>
+          <button id="budgetSettingsButton" type="button" class="button secondary small">设置预算</button>
+        </div>
+        <div class="budget-grid">
+          <article class="budget-card" id="dayBudget">
+            <div class="budget-card-heading"><h3>今日</h3><span id="dayBudgetState" class="tiny-tag neutral">未设置预算</span></div>
+            <div id="dayBudgetAmount" class="budget-amount">—</div>
+            <progress id="dayBudgetProgress" max="100" value="0" aria-label="每日预算使用比例"></progress>
+            <p id="dayBudgetDetail" class="help"></p>
+          </article>
+          <article class="budget-card" id="monthBudget">
+            <div class="budget-card-heading"><h3>本月</h3><span id="monthBudgetState" class="tiny-tag neutral">未设置预算</span></div>
+            <div id="monthBudgetAmount" class="budget-amount">—</div>
+            <progress id="monthBudgetProgress" max="100" value="0" aria-label="每月预算使用比例"></progress>
+            <p id="monthBudgetDetail" class="help"></p>
+          </article>
+          <article class="budget-card budget-peaks">
+            <h3>近 24 小时高用量时段</h3><ol id="budgetPeaks"></ol>
+          </article>
+        </div>
+        <p id="budgetHistory" class="help"></p>
+        <p class="help">仅累计已采集的上传与下载；采集缺口不补算，也不是套餐账单。预算只提醒，不断网。每日汇总独立保存，清理详细历史不会减少预算累计。</p>
       </section>
       <div class="split-grid">
         <section class="panel trend-panel">
@@ -404,6 +429,19 @@
         <label for="threshold">流量提醒阈值 <span>MB / 最近 60 秒</span></label
         ><input id="threshold" type="number" min="0.1" max="1000000" step="0.1" required />
         <p class="help">十进制 MB。阈值仅用于提醒，不会终止连接或会话。</p>
+        <section class="capture-settings" aria-labelledby="budgetSettingsHeading">
+          <h3 id="budgetSettingsHeading">每日与每月预算</h3>
+          <label for="budgetScope">预算统计范围</label>
+          <select id="budgetScope"><option value="codex">仅 Codex</option><option value="all">全部已观测进程</option></select>
+          <div class="budget-inputs">
+            <div><label for="dailyGB">每日预算（GB）</label><input id="dailyGB" type="number" min="0" max="1000000" step="0.001" required /></div>
+            <div><label for="monthlyGB">每月预算（GB）</label><input id="monthlyGB" type="number" min="0" max="1000000" step="0.001" required /></div>
+          </div>
+          <label for="budgetWarn">预警比例（%）</label><input id="budgetWarn" type="number" min="1" max="99" step="1" required />
+          <p class="help">0 表示关闭该预算。达到预警比例和 100% 时分别提醒一次；每天及每月 1 日按预算时区重新累计。</p>
+          <p id="budgetTimeZone" class="help"></p>
+          <label class="budget-notify"><input id="budgetDesktopNotify" type="checkbox" checked /><span>预算桌面提醒（托盘运行时有效）</span></label>
+        </section>
         <label for="retentionDays">数据保留 <span>天</span></label>
         <input id="retentionDays" type="number" min="1" max="365" step="1" required aria-describedby="retentionHelp" />
         <p id="retentionHelp" class="help">1–365 天。保存后在下次成功采集时按新期限清理；缩短期限会删除较早数据，延长不会恢复已删除数据。</p>

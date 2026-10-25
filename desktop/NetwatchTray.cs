@@ -16,7 +16,7 @@ using System.Windows.Forms;
 [assembly: AssemblyDescription("Portable local dashboard, collector and system tray host")]
 [assembly: AssemblyCompany("GloryPkqa")]
 [assembly: AssemblyProduct("Codex Netwatch")]
-[assembly: AssemblyVersion("0.2.6.0")]
+[assembly: AssemblyVersion("0.4.0.0")]
 
 internal sealed class TrayOptions
 {
@@ -74,6 +74,8 @@ internal sealed class NetwatchTray : ApplicationContext
     private readonly StartupRegistration startup;
     private bool starting, exiting, openingAfterStart;
     private DateTime startupDeadline, nextHealth;
+    private long lastBudgetAlert = -1;
+    private long lastBudgetAlertAt = -1;
     private readonly object logLock = new object();
     private readonly bool chinese = CultureInfo.CurrentUICulture.TwoLetterISOLanguageName == "zh";
 
@@ -152,6 +154,36 @@ internal sealed class NetwatchTray : ApplicationContext
         return health != null && health.TryGetValue("app", out app) && Convert.ToString(app) == "codex-flow"
             && health.TryGetValue("version", out version) && !String.IsNullOrEmpty(Convert.ToString(version))
             && health.TryGetValue("demo", out demo) && demo is bool && (bool)demo == options.Demo;
+    }
+    private void CheckBudgetAlerts()
+    {
+        try
+        {
+            HttpWebRequest req = (HttpWebRequest)WebRequest.Create(options.BaseUrl + "/api/budget-notifications");
+            req.Proxy = null; req.Timeout = 700; req.ReadWriteTimeout = 700;
+            req.AllowAutoRedirect = false; req.KeepAlive = false;
+            req.Headers["X-Codex-Flow"] = "1"; req.Headers["X-Codex-Desktop-Token"] = token;
+            using (HttpWebResponse response = (HttpWebResponse)req.GetResponse())
+            using (StreamReader reader = new StreamReader(response.GetResponseStream()))
+            {
+                char[] buffer = new char[8193];
+                int count = reader.ReadBlock(buffer, 0, buffer.Length);
+                if (count > 8192) return;
+                Dictionary<string, object> data = new JavaScriptSerializer().Deserialize<Dictionary<string, object>>(new string(buffer, 0, count));
+                Dictionary<string, object> latest = data["latest"] as Dictionary<string, object>;
+                long id = latest == null ? 0 : Convert.ToInt64(latest["id"], CultureInfo.InvariantCulture);
+                long at = latest == null ? 0 : Convert.ToInt64(latest["at"], CultureInfo.InvariantCulture);
+                bool fresh = lastBudgetAlert >= 0 && (id > lastBudgetAlert || at > lastBudgetAlertAt);
+                lastBudgetAlert = id; lastBudgetAlertAt = at;
+                if (!fresh || !Convert.ToBoolean(data["enabled"], CultureInfo.InvariantCulture)) return;
+                string period = Convert.ToString(latest["kind"]) == "day" ? Text("Daily", "每日") : Text("Monthly", "每月");
+                string scope = Convert.ToString(latest["scope"]) == "all" ? Text("all observed processes", "全部已观测进程") : "Codex";
+                string title = period + " " + scope + " " + Text("budget alert", "预算提醒");
+                string body = Text("Recorded ", "已观测 ") + Convert.ToString(latest["usedGB"]) + " / " + Convert.ToString(latest["limitGB"], CultureInfo.InvariantCulture) + " GB (" + Convert.ToString(latest["percent"]) + "%)";
+                tray.ShowBalloonTip(10000, title, body, ToolTipIcon.Warning);
+            }
+        }
+        catch { /* Notification delivery must never interrupt collection. */ }
     }
     private bool Owns(Dictionary<string, object> health)
     {
@@ -273,6 +305,7 @@ internal sealed class NetwatchTray : ApplicationContext
             }
         }
         if (!starting) UpdateStatus(health);
+        if (Owns(health)) CheckBudgetAlerts();
     }
     private void StopCollector()
     {
