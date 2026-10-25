@@ -66,7 +66,7 @@ function Find-NewCollector {
     $record = Get-Content -LiteralPath $lockPath -Raw | ConvertFrom-Json
     $candidate = Get-Process -Id $record.pid -ErrorAction Stop
     $details = Get-CimInstance Win32_Process -Filter ('ProcessId=' + [int]$record.pid)
-    if ($candidate.Path -eq (Join-Path $installRoot 'runtime\node.exe') -and
+    if ($details.ExecutablePath -eq (Join-Path $installRoot 'runtime\node.exe') -and
         $details.ParentProcessId -eq $newTray.Id -and $candidate.StartTime -ge $newTray.StartTime) {
       $null = $candidate.Handle
       if ($newCollector) { $newCollector.Dispose() }
@@ -101,7 +101,8 @@ function Stop-NewTray {
   # Only signal the exact application we started. Never terminate another listener.
   if (!$newTray.HasExited) {
     $process = Get-Process -Id $newTray.Id -ErrorAction Stop
-    if ($process.Path -ne $exe -or $process.StartTime -ne $newTray.StartTime) { throw 'Update process identity changed' }
+    $details = Get-CimInstance Win32_Process -Filter ('ProcessId=' + $newTray.Id)
+    if ($details.ExecutablePath -ne $exe -or $process.StartTime -ne $newTray.StartTime -or $newTray.HasExited) { throw 'Update process identity changed' }
     $env:CODEX_FLOW_DATA_DIR = $dataRoot; $env:CODEX_FLOW_PORT = [string]$p.port
     $signal = Start-Process -FilePath $exe -ArgumentList '--exit' -WorkingDirectory $installRoot -WindowStyle Hidden -PassThru
     if (!$signal.WaitForExit(10000)) { throw 'Exit request timed out' }
@@ -156,8 +157,13 @@ try {
   $hostProcess = Get-Process -Id $p.hostPid -ErrorAction Stop
   $collectorProcess = Get-Process -Id $p.collectorPid -ErrorAction Stop
   $null = $hostProcess.Handle; $null = $collectorProcess.Handle
-  if ($hostProcess.Path -ne $exe) { throw 'Running tray executable identity changed' }
-  if ($collectorProcess.Path -ne (Join-Path $installRoot 'runtime\node.exe')) { throw 'Running collector executable identity changed' }
+  # Use the OS process provider rather than PowerShell's extended Path property,
+  # which can be unavailable in a noninteractive runner. Retained process handles
+  # and the post-query exit checks keep the identity bound across the CIM lookup.
+  $hostIdentity = Get-CimInstance Win32_Process -Filter ('ProcessId=' + [int]$p.hostPid)
+  $collectorIdentity = Get-CimInstance Win32_Process -Filter ('ProcessId=' + [int]$p.collectorPid)
+  if ($hostIdentity.ExecutablePath -ne $exe -or $hostProcess.HasExited) { throw 'Running tray executable identity changed' }
+  if ($collectorIdentity.ExecutablePath -ne (Join-Path $installRoot 'runtime\node.exe') -or $collectorProcess.HasExited) { throw 'Running collector executable identity changed' }
   $identityDeadline = [DateTime]::UtcNow.AddSeconds(12)
   do {
     $health = Get-Health
