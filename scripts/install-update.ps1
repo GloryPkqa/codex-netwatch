@@ -36,6 +36,13 @@ function Assert-Child([string]$Parent, [string]$Child) {
   return $resolved
 }
 function Test-Alive([int]$ProcessId) { return [bool](Get-Process -Id $ProcessId -ErrorAction SilentlyContinue) }
+function Test-ImagePath([string]$Actual, [string]$Expected) {
+  if ([string]::IsNullOrWhiteSpace($Actual)) { return $false }
+  # Windows may report the running image using an 8.3 user-directory alias,
+  # whereas .NET has already expanded the plan root to its long path.
+  try { return [IO.Path]::GetFullPath($Actual) -eq [IO.Path]::GetFullPath($Expected) }
+  catch { return $false }
+}
 function Get-Health {
   try {
     $request = [Net.HttpWebRequest]::Create('http://127.0.0.1:' + $p.port + '/api/health')
@@ -66,7 +73,7 @@ function Find-NewCollector {
     $record = Get-Content -LiteralPath $lockPath -Raw | ConvertFrom-Json
     $candidate = Get-Process -Id $record.pid -ErrorAction Stop
     $details = Get-CimInstance Win32_Process -Filter ('ProcessId=' + [int]$record.pid)
-    if ($details.ExecutablePath -eq (Join-Path $installRoot 'runtime\node.exe') -and
+    if ((Test-ImagePath $details.ExecutablePath (Join-Path $installRoot 'runtime\node.exe')) -and
         $details.ParentProcessId -eq $newTray.Id -and $candidate.StartTime -ge $newTray.StartTime) {
       $null = $candidate.Handle
       if ($newCollector) { $newCollector.Dispose() }
@@ -102,7 +109,7 @@ function Stop-NewTray {
   if (!$newTray.HasExited) {
     $process = Get-Process -Id $newTray.Id -ErrorAction Stop
     $details = Get-CimInstance Win32_Process -Filter ('ProcessId=' + $newTray.Id)
-    if ($details.ExecutablePath -ne $exe -or $process.StartTime -ne $newTray.StartTime -or $newTray.HasExited) { throw 'Update process identity changed' }
+    if (!(Test-ImagePath $details.ExecutablePath $exe) -or $process.StartTime -ne $newTray.StartTime -or $newTray.HasExited) { throw 'Update process identity changed' }
     $env:CODEX_FLOW_DATA_DIR = $dataRoot; $env:CODEX_FLOW_PORT = [string]$p.port
     $signal = Start-Process -FilePath $exe -ArgumentList '--exit' -WorkingDirectory $installRoot -WindowStyle Hidden -PassThru
     if (!$signal.WaitForExit(10000)) { throw 'Exit request timed out' }
@@ -162,8 +169,8 @@ try {
   # and the post-query exit checks keep the identity bound across the CIM lookup.
   $hostIdentity = Get-CimInstance Win32_Process -Filter ('ProcessId=' + [int]$p.hostPid)
   $collectorIdentity = Get-CimInstance Win32_Process -Filter ('ProcessId=' + [int]$p.collectorPid)
-  if ($hostIdentity.ExecutablePath -ne $exe -or $hostProcess.HasExited) { throw ('Running tray executable identity changed; expected=' + $exe + '; actual=' + $hostIdentity.ExecutablePath + '; exited=' + $hostProcess.HasExited) }
-  if ($collectorIdentity.ExecutablePath -ne (Join-Path $installRoot 'runtime\node.exe') -or $collectorProcess.HasExited) { throw 'Running collector executable identity changed' }
+  if (!(Test-ImagePath $hostIdentity.ExecutablePath $exe) -or $hostProcess.HasExited) { throw 'Running tray executable identity changed' }
+  if (!(Test-ImagePath $collectorIdentity.ExecutablePath (Join-Path $installRoot 'runtime\node.exe')) -or $collectorProcess.HasExited) { throw 'Running collector executable identity changed' }
   $identityDeadline = [DateTime]::UtcNow.AddSeconds(12)
   do {
     $health = Get-Health
