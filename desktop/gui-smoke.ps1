@@ -17,6 +17,8 @@ if ($LASTEXITCODE -ne 0) { throw 'GUI test compilation failed.' }
 $listener = New-Object System.Net.Sockets.TcpListener([Net.IPAddress]::Loopback,0)
 $listener.Start(); $port = $listener.LocalEndpoint.Port; $listener.Stop()
 $previousPort = $env:CODEX_FLOW_PORT; $previousData = $env:CODEX_FLOW_DATA_DIR
+$previousSilentTest = $env:NETWATCH_TEST_SILENT
+$env:NETWATCH_TEST_SILENT = '1'
 $env:CODEX_FLOW_PORT = [string]$port; $env:CODEX_FLOW_DATA_DIR = Join-Path $testRoot 'data'
 $trayExe = Join-Path $PortableRoot 'Codex-Netwatch.exe'
 $hostProcess = $null; $probeProcess = $null
@@ -40,4 +42,5 @@ try {
     [void]$stopper.WaitForExit(5000)
     if ($hostProcess -and !$hostProcess.WaitForExit(10000)) { $hostProcess.Kill() }
     $env:CODEX_FLOW_PORT = $previousPort; $env:CODEX_FLOW_DATA_DIR = $previousData
+    $env:NETWATCH_TEST_SILENT = $previousSilentTest
 }

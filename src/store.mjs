@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
 import { DEFAULT_BUDGET, createBudgetCalendar, budgetPeriod } from './budgets.mjs';
+import { calendarSummary, reportSummary } from './reports.mjs';
 
 export class Store {
   constructor(dir) {
@@ -230,6 +231,12 @@ export class Store {
       firstObservedAt: this.db.prepare('SELECT MIN(first_at) AS at FROM daily_usage').get().at,
       day: budgetPeriod('day', day, rows.filter((r) => r.day === day), settings),
       month: budgetPeriod('month', month, rows, settings), peaks };
+  }
+  calendarSummary(month, scope = 'codex', now = Date.now()) {
+    return calendarSummary(this, month, scope, now);
+  }
+  reportSummary(options, now = Date.now()) {
+    return reportSummary(this, options, now);
   }
   checkBudgets(now = Date.now(), settings = this.get('budget', DEFAULT_BUDGET)) {
     if (!settings.dailyGB && !settings.monthlyGB) return;

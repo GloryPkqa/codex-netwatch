@@ -10,7 +10,7 @@ using Microsoft.Web.WebView2.Core;
 using Microsoft.Web.WebView2.WinForms;
 
 // The desktop and browser use the same local frontend and collector.
-// Only the local page can query/toggle startup through a narrow message contract.
+// Only the local page can control startup and the mini view through narrow messages.
 internal sealed class DashboardWindow : Form
 {
     private readonly Uri origin;
@@ -23,14 +23,15 @@ internal sealed class DashboardWindow : Form
     private readonly HashSet<ulong> blockedNavigations = new HashSet<ulong>();
     private readonly Func<bool> readStartup;
     private readonly Action<bool> writeStartup;
+    private readonly Func<string, string, object> miniAction;
     private readonly bool chinese = CultureInfo.CurrentUICulture.TwoLetterISOLanguageName == "zh";
 
     private string Local(string en, string zh) { return chinese ? zh : en; }
     internal DashboardWindow(string baseUrl, string profileFolder, Action<string> external, Action<string> failure,
-        Func<bool> getStartup = null, Action<bool> setStartup = null)
+        Func<bool> getStartup = null, Action<bool> setStartup = null, Func<string, string, object> miniCommand = null)
     {
         origin = new Uri(baseUrl); profile = profileFolder; openExternal = external; reportFailure = failure;
-        readStartup = getStartup; writeStartup = setStartup;
+        readStartup = getStartup; writeStartup = setStartup; miniAction = miniCommand;
         Text = "Codex Netwatch";
         StartPosition = FormStartPosition.CenterScreen;
         Rectangle workingArea = Screen.PrimaryScreen.WorkingArea;
@@ -120,26 +121,41 @@ internal sealed class DashboardWindow : Form
             core.Settings.IsPasswordAutosaveEnabled = false;
             core.Settings.IsGeneralAutofillEnabled = false;
             core.WebMessageReceived += delegate(object sender, CoreWebView2WebMessageReceivedEventArgs args) {
-                if (!IsLocal(args.Source) || readStartup == null || writeStartup == null) return;
+                if (!IsLocal(args.Source)) return;
                 string json = args.WebMessageAsJson;
                 if (json.Length > 1024) return;
                 JavaScriptSerializer serializer = new JavaScriptSerializer();
                 string requestId = null;
+                string responseType = null;
                 try {
                     Dictionary<string, object> request = serializer.Deserialize<Dictionary<string, object>>(json);
-                    object type, id, action, enabled;
-                    if (request == null || !request.TryGetValue("type", out type) || !Object.Equals(type, "netwatch:startup")
+                    object type, id, action, enabled, language;
+                    if (request == null || !request.TryGetValue("type", out type) || !(type is string)
                         || !request.TryGetValue("id", out id) || !(id is string) || ((string)id).Length > 40
                         || !request.TryGetValue("action", out action) || !(action is string)) return;
                     requestId = (string)id;
+                    if (Object.Equals(type, "netwatch:mini")) {
+                        if (miniAction == null || ((string)action != "get" && (string)action != "show" && (string)action != "hide")) return;
+                        string locale = "auto";
+                        if (request.TryGetValue("language", out language)) {
+                            if (!Object.Equals(language, "auto") && !Object.Equals(language, "en") && !Object.Equals(language, "zh-CN")) return;
+                            locale = (string)language;
+                        }
+                        responseType = "netwatch:mini:result";
+                        object miniState = miniAction((string)action, locale);
+                        core.PostWebMessageAsJson(serializer.Serialize(new { type=responseType, id=requestId, ok=true, state=miniState }));
+                        return;
+                    }
+                    if (!Object.Equals(type, "netwatch:startup") || readStartup == null || writeStartup == null) return;
+                    responseType = "netwatch:startup:result";
                     if ((string)action == "set") {
                         if (!request.TryGetValue("enabled", out enabled) || !(enabled is bool)) return;
                         writeStartup((bool)enabled);
                     } else if ((string)action != "get") return;
                     core.PostWebMessageAsJson(serializer.Serialize(new { type="netwatch:startup:result", id=requestId, ok=true, enabled=readStartup() }));
                 } catch (Exception error) {
-                    reportFailure("Startup preference: " + error.Message);
-                    if (requestId != null) core.PostWebMessageAsJson(serializer.Serialize(new { type="netwatch:startup:result", id=requestId, ok=false }));
+                    reportFailure("Desktop preference: " + error.Message);
+                    if (requestId != null && responseType != null) core.PostWebMessageAsJson(serializer.Serialize(new { type=responseType, id=requestId, ok=false }));
                 }
             };
             core.NavigationStarting += delegate(object sender, CoreWebView2NavigationStartingEventArgs args) {

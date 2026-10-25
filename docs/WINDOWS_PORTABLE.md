@@ -10,9 +10,25 @@ Download the portable ZIP from Releases, verify its SHA-256, extract the whole f
 
 The tray follows the Windows UI language and provides desktop dashboard, browser, collector start/stop, data-folder and exit actions. Closing the window hides it to the tray and leaves collection running. The hidden renderer is suspended when supported and resumes on reopen. Stopping from the dashboard keeps the tray available for restart. Exit stops only the collector started by this tray. An already running compatible monitor is opened in view-only mode; this tray never stops it.
 
-同一数据目录只允许一个托盘实例和一个采集器。重新运行 EXE 会打开现有页面。端口冲突、配置错误或无法写入会显示托盘通知；日志在 `data/tray.log`（最大约 2 MB，保留一个轮换副本）。不含自动升级。
+同一数据目录只允许一个托盘实例和一个采集器。重新运行 EXE 会打开现有页面。端口冲突、配置错误或无法写入会显示托盘通知；日志在 `data/tray.log`（最大约 2 MB，保留一个轮换副本）。更新由用户主动检查和发起，不在后台静默安装。
 
-One tray instance and one collector are allowed per data directory. Running the EXE again opens the existing dashboard. Startup failures appear as tray notifications and are recorded in `data/tray.log`, which rotates at roughly 2 MB with one previous file. There is no automatic updater.
+One tray instance and one collector are allowed per data directory. Running the EXE again opens the existing dashboard. Startup failures appear as tray notifications and are recorded in `data/tray.log`, which rotates at roughly 2 MB with one previous file. Update checks and installations are user initiated, without silent background installation.
+
+### 迷你窗口 / Mini monitor
+
+Windows 桌面版可打开迷你悬浮窗，将关键流量读数保持在其他窗口之上，也可收起为紧凑视图。需要查看日历、报告、连接或设置时返回完整面板。迷你视图和完整面板共用本次采集器及数据库，不另开一份采集。
+
+The mini monitor can stay on top or collapse to a compact view. Return to the full dashboard for the calendar, reports, connections or settings. Both views share the same collector and database rather than starting another capture instance.
+
+### 应用内更新 / In-app updates
+
+主动检查更新时，程序访问 GitHub 公开发布信息；确认提供的版本后才开始安装。桌面更新器选择 Windows x64 便携包，核对 SHA-256 摘要和发布文件清单，并在替换文件前备份 SQLite 数据库与本地配置。安装失败时回滚到保存的程序与数据。检查／下载更新会联网，但不会借此上传监控记录。摘要和清单校验不等于 Windows EXE 数字签名。
+
+Check for updates manually to query public GitHub release metadata, then review the offered version before installation. The Windows desktop updater selects the x64 portable package, verifies its SHA-256 digest and release file manifest, and backs up SQLite/configuration before replacing files. A failed installation rolls back the saved application and data. Update checks/downloads use the network without uploading monitoring records. Digest and manifest verification are not Windows code signing.
+
+手动升级仍可使用 Release 安装包：从托盘退出，备份 `data/` 和 `config.local.json`，完整解压新版本，替换程序文件并保留这两项。0.5.0 沿用数据库版本 4；退回 0.4.0 之前的版本需要升级到数据库版本 4 之前的备份。
+
+Manual installation remains available: exit from the tray, back up `data/` and `config.local.json`, extract the full new package and replace application files while preserving both. Version 0.5.0 keeps schema 4; returning to an app before 0.4.0 requires the pre-schema-4 backup.
 
 ### 开机自启 / Start with Windows
 
@@ -50,7 +66,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts/package-windows.ps1
 
 构建器使用系统 .NET Framework 的 C# 编译器生成 WinForms 托盘。原生通知区域使用 [Microsoft NotifyIcon API](https://learn.microsoft.com/en-us/dotnet/api/system.windows.forms.notifyicon)；编译选项见 [Microsoft compiler output options](https://learn.microsoft.com/en-us/dotnet/csharp/language-reference/compiler-options/output)。
 
-The builder uses the Windows .NET Framework C# compiler and WinForms. The embedded GUI uses the [official Microsoft.Web.WebView2 SDK](https://www.nuget.org/packages/Microsoft.Web.WebView2/1.0.4258.31), pinned by version and SHA-256. Managed Core/WinForms bindings, the x64 loader, Microsoft's licenses and `webview2-manifest.json` are included. The [Evergreen Runtime](https://learn.microsoft.com/en-us/microsoft-edge/webview2/concepts/distribution) is installed and updated separately. Embedded navigation stays on the configured local origin and user-initiated HTTPS links open in the default browser. No native host objects are exposed. A validated, local-origin-only message contract can read or toggle the startup preference; it cannot execute commands or access arbitrary files. Regular browser tabs have no native startup channel.
+The builder uses the Windows .NET Framework C# compiler and WinForms. The embedded GUI uses the [official Microsoft.Web.WebView2 SDK](https://www.nuget.org/packages/Microsoft.Web.WebView2/1.0.4258.31), pinned by version and SHA-256. Managed Core/WinForms bindings, the x64 loader, Microsoft's licenses and `webview2-manifest.json` are included. The [Evergreen Runtime](https://learn.microsoft.com/en-us/microsoft-edge/webview2/concepts/distribution) is installed and updated separately. Embedded navigation stays on the configured local origin and user-initiated HTTPS links open in the default browser. No native host objects are exposed. Validated local-origin message contracts expose specific startup, mini-window and update actions rather than arbitrary commands or file access. Regular browser tabs do not acquire the native desktop channel.
 
 The collector runtime is pinned to [official Node.js 24.22.1 Windows x64](https://nodejs.org/dist/v24.22.1/). Both its ZIP and `node.exe` SHA-256 values must match the [official checksum manifest](https://nodejs.org/dist/v24.22.1/SHASUMS256.txt) and pins in the build script. The build does not claim GPG signature verification.
 
@@ -62,6 +78,6 @@ On Windows with WebView2 installed, run `powershell -NoProfile -ExecutionPolicy 
 
 ## 当前边界 / Current limits
 
-此预发布 EXE 未签名。便携包方便启动现有采集器，不改变 Mihomo 快照覆盖边界、系统绕过代理的可见性或会话字节归因能力。采集仍依赖用户已有 Mihomo/Clash 控制接口。
+EXE 尚未签名。原生模式需用户在设置中授权本次运行的采集助手；也可使用已有 Mihomo/Clash 兼容控制接口。便携打包、日历、报告和更新器不会改变采集覆盖或共享连接的字节归因边界。采集缺口不补算，记录不能当作完整上网账单。
 
-This prerelease EXE is unsigned. Packaging does not change the collector's measurement limits: it still needs an existing Mihomo/Clash controller, can miss short connections, cannot see bypass traffic, and cannot allocate shared connection bytes precisely to individual Codex chats.
+The EXE is unsigned. Native capture needs authorization for its helper for the current run; a compatible Mihomo/Clash controller is the alternative. Packaging, calendars, reports and updating do not change capture coverage or allocate shared-connection bytes precisely to individual Codex chats. Gaps are not reconstructed and recorded process activity is not a complete internet bill.

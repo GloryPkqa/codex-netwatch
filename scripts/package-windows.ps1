@@ -81,6 +81,7 @@ foreach ($item in @('src','public','docs','LICENSE','package.json','config.examp
 }
 New-Item -ItemType Directory -Path (Join-Path $stage 'scripts') -Force | Out-Null
 Copy-Item -LiteralPath (Join-Path $projectRoot 'scripts\windows-observer.ps1') -Destination (Join-Path $stage 'scripts')
+Copy-Item -LiteralPath (Join-Path $projectRoot 'scripts\install-update.ps1') -Destination (Join-Path $stage 'scripts')
 New-Item -ItemType Directory -Path (Join-Path $stage 'native') -Force | Out-Null
 & (Join-Path $projectRoot 'scripts\build-native.ps1') -Destination (Join-Path $stage 'native\Codex-Netwatch-Capture.exe')
 Copy-Item -LiteralPath (Join-Path $projectRoot 'native\NetworkCapture.cs') -Destination (Join-Path $stage 'native')
@@ -91,7 +92,7 @@ $icon = Join-Path $stageRoot 'Netwatch.ico'
 $compiler = Join-Path $env:WINDIR 'Microsoft.NET\Framework64\v4.0.30319\csc.exe'
 if (!(Test-Path -LiteralPath $compiler)) { throw 'Windows .NET Framework C# compiler is required to build the tray host.' }
 $exe = Join-Path $stage 'Codex-Netwatch.exe'
-& $compiler /nologo /optimize+ /target:winexe /platform:x64 /codepage:65001 /reference:System.Windows.Forms.dll /reference:System.Drawing.dll /reference:System.Web.Extensions.dll /reference:System.dll /reference:System.Core.dll ("/reference:" + (Join-Path $stage 'Microsoft.Web.WebView2.Core.dll')) ("/reference:" + (Join-Path $stage 'Microsoft.Web.WebView2.WinForms.dll')) ("/win32manifest:" + (Join-Path $projectRoot 'desktop\app.manifest')) ("/win32icon:" + $icon) ("/resource:" + $icon + ',Netwatch.ico') ("/out:" + $exe) (Join-Path $projectRoot 'desktop\NetwatchTray.cs') (Join-Path $projectRoot 'desktop\DashboardWindow.cs') (Join-Path $projectRoot 'desktop\StartupRegistration.cs')
+& $compiler /nologo /optimize+ /target:winexe /platform:x64 /codepage:65001 /reference:System.Windows.Forms.dll /reference:System.Drawing.dll /reference:System.Web.Extensions.dll /reference:System.dll /reference:System.Core.dll ("/reference:" + (Join-Path $stage 'Microsoft.Web.WebView2.Core.dll')) ("/reference:" + (Join-Path $stage 'Microsoft.Web.WebView2.WinForms.dll')) ("/win32manifest:" + (Join-Path $projectRoot 'desktop\app.manifest')) ("/win32icon:" + $icon) ("/resource:" + $icon + ',Netwatch.ico') ("/out:" + $exe) (Join-Path $projectRoot 'desktop\NetwatchTray.cs') (Join-Path $projectRoot 'desktop\DashboardWindow.cs') (Join-Path $projectRoot 'desktop\StartupRegistration.cs') (Join-Path $projectRoot 'desktop\MiniWindow.cs')
 if ($LASTEXITCODE -ne 0 -or !(Test-Path -LiteralPath $exe)) { throw 'Tray host compilation failed.' }
 @'
 <?xml version="1.0" encoding="utf-8"?>

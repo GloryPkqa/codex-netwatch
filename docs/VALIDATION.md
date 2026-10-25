@@ -1,6 +1,20 @@
 # Validation records
 
-Latest validation recorded on 2026-10-23. These results describe the tested workload and host, not an accuracy guarantee for every capture source or Windows installation. Older entries retain their original scope.
+Latest validation recorded on 2026-10-25. These results describe the tested workload and host, not an accuracy guarantee for every capture source or Windows installation. Older entries retain their original scope.
+
+## v0.5.0 desktop and updater verification
+
+- Local regression tests passed (115 tests: 113 passed and two administrator-only native tests explicitly skipped), followed by the additional same-version update-retry regression and API checks. All JavaScript syntax checks passed.
+- The packaged Windows lifecycle smoke passed: own collector startup/stop/restart/exit, single instance, lock cleanup and isolation from foreign services. Real WebView2 checks passed, including the mini-window language bridge, startup preference, CSV export, navigation isolation and close/reopen behavior.
+- An isolated portable upgrade fixture rejected ZIP traversal before stopping the current instance, preserved SQLite/configuration/budget settings through a successful upgrade, then restored and restarted the previous version after an intentionally broken new collector failed to start. No real user database was used in these fixtures.
+- English and Chinese calendar/report UI checks passed at 360, 390, 768 and 1600 pixels; offline HTML report export retained coverage notes and escaped stored text. No completed long-run capture or billing-accuracy validation is claimed.
+
+## v0.5.0 calendar/report read models
+
+- Desktop smoke fixtures explicitly set `NETWATCH_TEST_SILENT=1` so intentional startup/rollback failures do not display tray balloons on the user's desktop. This switch only suppresses test notifications; production notifications keep their existing defaults and failure logging remains active.
+- Seven focused calendar/report tests passed against temporary synthetic databases. They cover leap months, observed zero versus unknown/future dates, fixed budget zones, UTC/local date boundaries, DST 23/25-hour days, same-local-time comparisons and unavailable pruned partial-day detail.
+- Report tests verify current-period clipping before future samples, preserved daily totals after detail cleanup, retained process/hour evidence, open/closed gap clipping, explicit coverage limits, invalid inputs and unchanged schema-4 integrity. Existing storage regressions also passed.
+- These are read-model tests, not a full desktop, updater, live-capture or long-running validation. Final release-level desktop/update/CI checks are recorded separately when completed. No billing-accuracy or complete-capture claim is made.
 
 ## v0.3.2 editable retention and six-hour range
 

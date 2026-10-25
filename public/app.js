@@ -7,7 +7,8 @@ import {
   translateAlert,
   captureStaticTranslations,
 } from './i18n.js';
-import { createStartupBridge } from './desktop.js';
+import { createStartupBridge, createMiniBridge } from './desktop.js';
+import { createHistoryPanels, createUpdatePanel } from './history.js';
 import { setupState, setupCopy } from './setup.js';
 const browserLanguages = navigator.languages || [navigator.language];
 let systemLocale = null,
@@ -152,6 +153,9 @@ function params() {
   return p;
 }
 
+const historyPanels = createHistoryPanels({ api, t, language: () => language, toast });
+const updatePanel = createUpdatePanel({ api, t, currentVersion: bootstrap?.version || '0.5.0', toast });
+
 function render(data) {
   latest = data;
   renderSetup();
@@ -216,6 +220,7 @@ function render(data) {
   renderAlerts(data.alerts);
   renderBudgets(data.budget);
   renderInsights(data.insights);
+  historyPanels.refresh();
   drawChart();
 }
 function renderBudgets(data) {
@@ -834,7 +839,10 @@ $('applyRange').addEventListener('click', () => {
   $('exportButton').disabled = false;
   refreshNow();
 });
-$('scope').addEventListener('change', refreshNow);
+$('scope').addEventListener('change', () => {
+  historyPanels.setScope($('scope').value);
+  refreshNow();
+});
 $('processScope').addEventListener('change', () => latest && renderInsights(latest.insights));
 $('search').addEventListener('input', renderConnections);
 $('sessionSearch').addEventListener('input', () => latest && renderSessions(latest.sessions));
@@ -847,6 +855,14 @@ $('chart').addEventListener('mouseleave', () => {
   drawChart();
 });
 new ResizeObserver(() => drawChart()).observe($('chart'));
+const miniBridge = createMiniBridge(window.chrome?.webview);
+if (miniBridge) miniBridge.get().then(() => { $('miniWindowButton').hidden = false; }).catch(() => {});
+$('miniWindowButton').addEventListener('click', async () => {
+  $('miniWindowButton').disabled = true;
+  try { await miniBridge?.show(language); }
+  catch { toast(t('无法打开迷你悬浮窗，请稍后重试。')); }
+  finally { $('miniWindowButton').disabled = false; }
+});
 const startupBridge = createStartupBridge(window.chrome?.webview);
 let startupEnabled = false,
   startupAvailable = false,
@@ -897,6 +913,7 @@ $('startupToggle').addEventListener('click', async () => {
 $('settingsButton').addEventListener('click', () => {
   $('settingsDialog').showModal();
   refreshStartup();
+  updatePanel.load();
 });
 $('budgetSettingsButton').addEventListener('click', () => {
   $('settingsDialog').showModal();
@@ -1050,6 +1067,8 @@ $('language').addEventListener('change', () => {
   language = resolveLanguage(preference, systemLocale ? [systemLocale] : browserLanguages);
   document.documentElement.lang = language;
   translateStatic(language);
+  historyPanels.render();
+  updatePanel.render();
   renderStartupState();
   renderSetup();
   $('toast').hidden = true;
@@ -1057,4 +1076,5 @@ $('language').addEventListener('change', () => {
   if (latest) render(latest);
   if (stopped || disconnected) renderUnavailable();
 });
+historyPanels.refresh();
 refresh();

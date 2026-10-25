@@ -17,8 +17,15 @@ internal static class NetwatchGuiSmoke
         List<string> failures = new List<string>();
         bool startupEnabled = false;
         bool simulateStartupFailure = false;
+        bool miniVisible = false;
+        string miniLanguage = null;
         DashboardWindow window = new DashboardWindow(args[0], args[1], delegate { }, delegate(string error) { failures.Add(error); },
-            delegate { if (simulateStartupFailure) throw new InvalidOperationException("Synthetic preference read failure"); return startupEnabled; }, delegate(bool enabled) { startupEnabled = enabled; });
+            delegate { if (simulateStartupFailure) throw new InvalidOperationException("Synthetic preference read failure"); return startupEnabled; }, delegate(bool enabled) { startupEnabled = enabled; },
+            delegate(string action, string language) {
+                if (action == "show") { miniVisible = true; miniLanguage = language; }
+                if (action == "hide") miniVisible = false;
+                return new { visible=miniVisible, pinned=true, collapsed=false };
+            });
         window.Shown += async delegate {
             try
             {
@@ -35,6 +42,11 @@ internal static class NetwatchGuiSmoke
                 if (failures.Count != 0) throw new Exception("WebView2 initialization failed.");
                 if (await window.Browser.CoreWebView2.ExecuteScriptAsync("document.documentElement.lang === 'en' && document.querySelector('#language').value === 'en'") != "true")
                     throw new Exception("A fresh desktop profile did not default to English.");
+                if (await window.Browser.CoreWebView2.ExecuteScriptAsync("!document.querySelector('#miniWindowButton').hidden") != "true")
+                    throw new Exception("Mini-window control did not detect the native host.");
+                await window.Browser.CoreWebView2.ExecuteScriptAsync("document.querySelector('#miniWindowButton').click()");
+                await Task.Delay(200);
+                if (!miniVisible || miniLanguage != "en") throw new Exception("Mini-window control did not send the current language to the host.");
                 if (await window.Browser.CoreWebView2.ExecuteScriptAsync("document.querySelector('.version-link')?.href === 'https://github.com/GloryPkqa/codex-netwatch' && document.querySelector('.version-link').textContent.includes('codex-netwatch')") != "true")
                     throw new Exception("Sidebar project link is missing or points to the wrong repository.");
                 if (await window.Browser.CoreWebView2.ExecuteScriptAsync("document.querySelector('#processScope').value === 'codex' && !document.querySelector('#processRows').textContent.includes('browser.exe') && document.querySelector('#processRows').textContent.includes('codex.exe')") != "true")
@@ -51,6 +63,9 @@ internal static class NetwatchGuiSmoke
                 await window.Browser.CoreWebView2.ExecuteScriptAsync("document.querySelector('#language').value='zh-CN'; document.querySelector('#language').dispatchEvent(new Event('change'))");
                 if (await window.Browser.CoreWebView2.ExecuteScriptAsync("document.querySelector('#setupStatus').textContent.trim() === '当前为演示模式' && document.querySelector('#setupButton').textContent.trim() === '连接帮助'") != "true")
                     throw new Exception("Connection help did not follow the language selection.");
+                await window.Browser.CoreWebView2.ExecuteScriptAsync("document.querySelector('#miniWindowButton').click()");
+                await Task.Delay(150);
+                if (miniLanguage != "zh-CN") throw new Exception("Mini-window control did not follow Chinese selection.");
                 window.ClientSize = new System.Drawing.Size(800, 700);
                 await Task.Delay(150);
                 if (await window.Browser.CoreWebView2.ExecuteScriptAsync("document.documentElement.scrollWidth <= window.innerWidth") != "true")

@@ -16,7 +16,7 @@ using System.Windows.Forms;
 [assembly: AssemblyDescription("Portable local dashboard, collector and system tray host")]
 [assembly: AssemblyCompany("GloryPkqa")]
 [assembly: AssemblyProduct("Codex Netwatch")]
-[assembly: AssemblyVersion("0.4.0.0")]
+[assembly: AssemblyVersion("0.5.0.0")]
 
 internal sealed class TrayOptions
 {
@@ -71,6 +71,7 @@ internal sealed class NetwatchTray : ApplicationContext
     private readonly string token;
     private Process child;
     private DashboardWindow dashboard;
+    private MiniWindow mini;
     private readonly StartupRegistration startup;
     private bool starting, exiting, openingAfterStart;
     private DateTime startupDeadline, nextHealth;
@@ -78,8 +79,13 @@ internal sealed class NetwatchTray : ApplicationContext
     private long lastBudgetAlertAt = -1;
     private readonly object logLock = new object();
     private readonly bool chinese = CultureInfo.CurrentUICulture.TwoLetterISOLanguageName == "zh";
+    private readonly bool silentTest = Environment.GetEnvironmentVariable("NETWATCH_TEST_SILENT") == "1";
 
     private string Text(string en, string zh) { return chinese ? zh : en; }
+    private void ShowBalloon(int timeout, string title, string message, ToolTipIcon icon)
+    {
+        if (!silentTest) tray.ShowBalloonTip(timeout, title, message, icon);
+    }
     internal NetwatchTray(TrayOptions value)
     {
         options = value;
@@ -98,6 +104,9 @@ internal sealed class NetwatchTray : ApplicationContext
         menu.Items.Add(status);
         menu.Items.Add(new ToolStripSeparator());
         menu.Items.Add(Text("Open dashboard", "打开监控页面"), null, delegate { OpenDashboard(); });
+        ToolStripMenuItem miniItem = new ToolStripMenuItem(Text("Mini window", "迷你悬浮窗"));
+        miniItem.Click += delegate { MiniCommand(mini != null && mini.Visible ? "hide" : "show", null); };
+        menu.Items.Add(miniItem);
         menu.Items.Add(Text("Open in browser", "在浏览器打开"), null, delegate { OpenBrowser(); });
         ToolStripMenuItem autoStart = new ToolStripMenuItem(Text("Start with Windows", "开机自启"));
         autoStart.Click += delegate {
@@ -107,6 +116,7 @@ internal sealed class NetwatchTray : ApplicationContext
         menu.Opening += delegate {
             try { autoStart.Checked = startup.Enabled; }
             catch { autoStart.Enabled = false; }
+            miniItem.Checked = mini != null && mini.Visible;
         };
         menu.Items.Add(autoStart);
         start = new ToolStripMenuItem(Text("Start collector", "启动采集"), null, delegate { StartCollector(false); });
@@ -128,6 +138,7 @@ internal sealed class NetwatchTray : ApplicationContext
         timer = new System.Windows.Forms.Timer(); timer.Interval = 200;
         timer.Tick += Tick; timer.Start();
         StartCollector(!options.NoBrowser);
+        EnsureMini(); mini.RestoreVisibility();
     }
 
     private Dictionary<string, object> Health()
@@ -180,7 +191,7 @@ internal sealed class NetwatchTray : ApplicationContext
                 string scope = Convert.ToString(latest["scope"]) == "all" ? Text("all observed processes", "全部已观测进程") : "Codex";
                 string title = period + " " + scope + " " + Text("budget alert", "预算提醒");
                 string body = Text("Recorded ", "已观测 ") + Convert.ToString(latest["usedGB"]) + " / " + Convert.ToString(latest["limitGB"], CultureInfo.InvariantCulture) + " GB (" + Convert.ToString(latest["percent"]) + "%)";
-                tray.ShowBalloonTip(10000, title, body, ToolTipIcon.Warning);
+                ShowBalloon(10000, title, body, ToolTipIcon.Warning);
             }
         }
         catch { /* Notification delivery must never interrupt collection. */ }
@@ -211,18 +222,28 @@ internal sealed class NetwatchTray : ApplicationContext
                     delegate(string url) { Process.Start(new ProcessStartInfo(url) { UseShellExecute = true }); },
                     delegate(string message) {
                         Log("webview", message);
-                        tray.ShowBalloonTip(8000, "Codex Netwatch", Text("Desktop view unavailable; the collector is still controlled from the tray.", "内置面板暂不可用，仍可通过托盘控制采集或打开浏览器。"), ToolTipIcon.Warning);
-                    }, delegate { return startup.Enabled; }, delegate(bool enabled) { startup.SetEnabled(enabled); });
+                        ShowBalloon(8000, "Codex Netwatch", Text("Desktop view unavailable; the collector is still controlled from the tray.", "内置面板暂不可用，仍可通过托盘控制采集或打开浏览器。"), ToolTipIcon.Warning);
+                    }, delegate { return startup.Enabled; }, delegate(bool enabled) { startup.SetEnabled(enabled); }, MiniCommand);
                 dashboard.Icon = tray.Icon;
             }
             dashboard.ShowDashboard();
         }
         catch (Exception error) { ShowFailure(error.Message); OpenBrowser(); }
     }
+    private void EnsureMini()
+    {
+        if (mini != null && !mini.IsDisposed) return;
+        mini = new MiniWindow(options.BaseUrl, options.DataDir, token, OpenDashboard);
+        mini.Icon = tray.Icon;
+    }
+    private object MiniCommand(string action, string language)
+    {
+        EnsureMini(); return mini.Command(action, language);
+    }
     private void ShowFailure(string message)
     {
         status.Text = Text("Stopped - check logs", "已停止，请查看日志");
-        tray.ShowBalloonTip(8000, "Codex Netwatch", message, ToolTipIcon.Warning);
+        ShowBalloon(8000, "Codex Netwatch", message, ToolTipIcon.Warning);
         Log("launcher", message);
     }
     private void StartCollector(bool openBrowser)
@@ -274,10 +295,13 @@ internal sealed class NetwatchTray : ApplicationContext
     private void UpdateStatus(Dictionary<string, object> health)
     {
         bool valid = Compatible(health), own = Owns(health);
+        object state;
+        bool collecting = valid && health.TryGetValue("state", out state) && Object.Equals(state, "connected");
         start.Enabled = !starting && !valid;
         stop.Enabled = own;
-        status.Text = own ? Text("Collector running", "正在采集") : valid ? Text("Existing monitor (view only)", "已有监控（仅查看）") : Text("Collector stopped", "采集已停止");
-        tray.Text = "Codex Netwatch" + (options.Demo ? " [DEMO]" : "") + (valid ? " - ON" : " - OFF");
+        status.Text = own ? (collecting ? Text("Collector running", "正在采集") : Text("Waiting for capture source", "等待采集源连接"))
+            : valid ? Text("Existing monitor (view only)", "已有监控（仅查看）") : Text("Collector stopped", "采集已停止");
+        tray.Text = "Codex Netwatch" + (options.Demo ? " [DEMO]" : "") + (collecting ? " - ON" : valid ? " - WAIT" : " - OFF");
     }
     private void Tick(object sender, EventArgs args)
     {
@@ -369,6 +393,7 @@ internal sealed class NetwatchTray : ApplicationContext
         if (exiting) return;
         exiting = true; timer.Stop();
         if (dashboard != null) { dashboard.Dispose(); dashboard = null; }
+        if (mini != null) { mini.Dispose(); mini = null; }
         StopCollector();
         tray.Visible = false; tray.Dispose(); timer.Dispose();
         openEvent.Dispose(); startEvent.Dispose(); stopEvent.Dispose(); exitEvent.Dispose();

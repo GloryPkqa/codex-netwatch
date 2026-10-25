@@ -4,6 +4,7 @@ import path from 'node:path';
 import { VERSION } from './version.mjs';
 import { createDiagnostics } from './diagnostics.mjs';
 import { validateBudget } from './budgets.mjs';
+import { UpdateManager } from './update.mjs';
 
 export function parseRange(url, now, firstAt) {
   const ranges = {
@@ -71,6 +72,7 @@ function readBody(req, limit = 4096) {
   });
 }
 export function createServer(config, store, monitor, shutdown) {
+  const updater = new UpdateManager(config);
   let insightCache = null;
   let budgetCache = null;
   const budget = () => {
@@ -86,7 +88,7 @@ export function createServer(config, store, monitor, shutdown) {
     return insightCache.value;
   };
   const assets = new Map(
-    ['/', '/app.js', '/i18n.js', '/desktop.js', '/setup.js', '/style.css', '/icon.svg'].map(
+    ['/', '/app.js', '/i18n.js', '/desktop.js', '/setup.js', '/history.js', '/style.css', '/icon.svg'].map(
       (route) => [
         route,
         path.join(config.root, 'public', route === '/' ? 'index.html' : route.slice(1)),
@@ -117,6 +119,7 @@ export function createServer(config, store, monitor, shutdown) {
         return json(200, {
           app: 'codex-flow',
           version: VERSION,
+          collectorPid: process.pid,
           ...(config.desktopToken ? { desktopInstance: config.desktopToken } : {}),
           systemLocale: config.systemLocale || Intl.DateTimeFormat().resolvedOptions().locale,
           state: monitor.state,
@@ -127,6 +130,13 @@ export function createServer(config, store, monitor, shutdown) {
           return json(403, { error: 'Missing local client header' });
         if (req.method === 'POST') {
           const body = await readBody(req);
+          if (url.pathname === '/api/update/install') {
+            if (!config.desktopToken || req.headers['x-codex-desktop-token'] !== config.desktopToken)
+              return json(403, { error: 'Desktop instance marker required' });
+            const request = JSON.parse(body || '{}');
+            try { return json(202, updater.install(request.version)); }
+            catch (error) { return json(409, { ...updater.status(), error: error.code || 'install_failed' }); }
+          }
           if (url.pathname === '/api/capture') {
             const request = JSON.parse(body || '{}');
             if (!['auto', 'native', 'mihomo'].includes(request.mode) || typeof request.authorize !== 'boolean')
@@ -166,6 +176,25 @@ export function createServer(config, store, monitor, shutdown) {
           return json(404, { error: 'Not found' });
         }
         if (req.method !== 'GET') return json(405, { error: 'Method not allowed' });
+        if (url.pathname === '/api/update')
+          return json(200, url.searchParams.get('check') === '1' ? await updater.check() : updater.status());
+        if (url.pathname === '/api/mini') {
+          if (!config.desktopToken || req.headers['x-codex-desktop-token'] !== config.desktopToken)
+            return json(403, { error: 'Desktop instance marker required' });
+          return json(200, { status: monitor.status(), budget: store.budgetSummary(Date.now(), undefined, false) });
+        }
+        if (url.pathname === '/api/calendar' || url.pathname === '/api/report') {
+          const scope = url.searchParams.get('scope') || 'codex';
+          if (!['codex', 'all'].includes(scope)) return json(400, { error: 'Invalid scope' });
+          try {
+            if (url.pathname === '/api/calendar') return json(200, store.calendarSummary(url.searchParams.get('month'), scope));
+            return json(200, store.reportSummary({ kind: url.searchParams.get('kind'), date: url.searchParams.get('date'), scope }));
+          } catch (error) {
+            if (error instanceof RangeError || error instanceof TypeError || /Invalid|Future|has not started|does not exist/i.test(error.message))
+              return json(400, { error: 'Invalid calendar or report period' });
+            throw error;
+          }
+        }
         if (url.pathname === '/api/budget-notifications') {
           if (!config.desktopToken || req.headers['x-codex-desktop-token'] !== config.desktopToken)
             return json(403, { error: 'Desktop instance marker required' });

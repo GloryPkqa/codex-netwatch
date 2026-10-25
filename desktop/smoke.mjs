@@ -71,7 +71,7 @@ async function until(predicate, message, duration = 20000) {
 }
 try {
   port = await freePort();
-  env = { ...process.env, CODEX_FLOW_PORT: String(port), CODEX_FLOW_DATA_DIR: data };
+  env = { ...process.env, NETWATCH_TEST_SILENT: '1', CODEX_FLOW_PORT: String(port), CODEX_FLOW_DATA_DIR: data };
   const host = launch();
   await until(
     async () => /^[a-f0-9]{64}$/.test((await health())?.desktopInstance || ''),

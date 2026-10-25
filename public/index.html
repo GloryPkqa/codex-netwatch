@@ -18,16 +18,18 @@
       <div class="nav-label">工作空间</div>
       <nav aria-label="主导航">
         <a class="nav-link active" href="#overview"><span>◫</span> 流量总览</a>
+        <a class="nav-link" href="#history"><span>▦</span> 流量日历</a>
         <a class="nav-link" href="#investigation"><span>!</span> 异常排查</a>
         <a class="nav-link" href="#connections"><span>⇄</span> 连接与去向</a>
         <a class="nav-link" href="#sessions"><span>◷</span> 会话活动</a>
+        <a class="nav-link" href="#reports"><span>▤</span> 日报与周报</a>
         <a class="nav-link" href="#diagnostics"><span>⌁</span> 采集诊断</a>
       </nav>
       <div class="sidebar-bottom">
         <span class="local-dot"></span> 数据只保存在本机
         <p>无云端 · 无遥测 · 无外部资源</p>
         <span class="version"
-          >v0.4.0 /
+          >v0.5.0 /
           <a
             class="version-link"
             href="https://github.com/GloryPkqa/codex-netwatch"
@@ -44,6 +46,7 @@
         <span>个人监控台 <span class="slash">/</span> <strong>Codex</strong></span>
         <div class="top-actions">
           <span id="captureBadge" class="small-muted"></span>
+          <button id="miniWindowButton" type="button" class="icon-button" hidden>迷你悬浮窗</button>
           <label class="sr-only" for="language">界面语言</label>
           <select id="language" class="language-select">
             <option value="en" lang="en">English</option>
@@ -199,6 +202,22 @@
         </div>
         <p id="budgetHistory" class="help"></p>
         <p class="help">仅累计已采集的上传与下载；采集缺口不补算，也不是套餐账单。预算只提醒，不断网。每日汇总独立保存，清理详细历史不会减少预算累计。</p>
+      </section>
+      <section id="history" class="panel history-panel" aria-labelledby="historyHeading">
+        <div class="panel-heading history-heading">
+          <div><h2 id="historyHeading">流量日历</h2><p id="historyContext">每日汇总与同期对比</p></div>
+          <div class="history-controls">
+            <label class="sr-only" for="historyScope">日历与报告统计范围</label>
+            <select id="historyScope"><option value="codex">仅 Codex</option><option value="all">全部已观测进程</option></select>
+            <div class="month-controls"><button id="previousMonth" type="button" class="icon-button" aria-label="上个月">‹</button><label class="sr-only" for="historyMonth">日历月份</label><input id="historyMonth" type="month" required /><button id="nextMonth" type="button" class="icon-button" aria-label="下个月">›</button></div>
+          </div>
+        </div>
+        <p id="historyStatus" class="history-status" role="status"></p>
+        <div class="history-layout">
+          <div class="calendar-wrap"><div id="calendarWeekdays" class="calendar-weekdays" aria-hidden="true"></div><div id="calendarDays" class="calendar-days" aria-label="每日已观测流量"></div><div class="calendar-legend"><span class="calendar-key unknown"></span><span>无记录</span><span class="calendar-key zero"></span><span>已观测为零</span><span class="calendar-key high"></span><span>较高用量</span></div></div>
+          <div><div id="calendarTotal" class="calendar-total"></div><div id="historyComparison" class="history-comparison"></div><p class="help">对比截至相同本地时刻的已观测量；详细记录不足时不显示变化比例。缺口不补算。</p></div>
+        </div>
+        <p class="history-footnote">点击日期查看下方日报。日历保留每日汇总，进程与小时明细受历史保留天数限制。</p>
       </section>
       <div class="split-grid">
         <section class="panel trend-panel">
@@ -379,6 +398,18 @@
           或订阅额度。缺失计数显示「—」。监控期间增量为所有已记录时段，独立于上方网络时间筛选。
         </div>
       </section>
+      <section id="reports" class="panel report-panel" aria-labelledby="reportsHeading">
+        <div class="panel-heading history-heading">
+          <div><h2 id="reportsHeading">本地日报与周报</h2><p>记录用量、主要进程、高峰时段和采集缺口</p></div>
+          <div class="history-controls">
+            <label class="sr-only" for="reportKind">报告类型</label><select id="reportKind"><option value="day">日报</option><option value="week">周报</option></select>
+            <label class="sr-only" for="reportDate">报告日期</label><input id="reportDate" type="date" required />
+            <button id="refreshReport" type="button" class="button secondary small">刷新报告</button><button id="exportReport" type="button" class="button secondary small" disabled>↓ 导出报告</button>
+          </div>
+        </div>
+        <p id="reportStatus" class="history-status" role="status"></p><div id="reportPreview" class="report-preview"></div>
+        <p class="history-footnote">报告只在本机生成，包含进程名称与用量。导出的 HTML 可离线查看，也可用浏览器打印为 PDF。</p>
+      </section>
       <section id="diagnostics" class="diagnostics-grid">
         <article class="panel">
           <div class="panel-heading">
@@ -482,6 +513,14 @@
           </div>
         </section>
         <div class="dialog-actions"><button class="button" type="submit">保存设置</button></div>
+        <section class="update-settings" aria-labelledby="updateHeading">
+          <div class="update-heading"><h3 id="updateHeading">应用更新</h3><button id="checkUpdate" type="button" class="button secondary small">检查更新</button></div>
+          <p id="updateStatus" class="help" role="status">仅在点击检查更新时连接 GitHub，不上传监控数据。</p>
+          <p id="updateLastResult" class="help" role="status" hidden></p>
+          <pre id="updateNotes" class="update-notes" hidden></pre>
+          <div class="update-actions"><button id="installUpdate" type="button" class="button" hidden>下载并安装</button><a id="updateRelease" target="_blank" rel="noopener noreferrer" hidden>查看发行说明 ↗</a></div>
+          <p id="updateInstallHint" class="help" hidden>安装前校验下载文件并备份程序与本地数据，随后重启。更新期间采集会短暂中断。</p>
+        </section>
         <div class="diagnostic-export">
           <button id="diagnosticsButton" type="button" class="button secondary">
             导出脱敏诊断

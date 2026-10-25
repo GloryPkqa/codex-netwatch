@@ -1,6 +1,6 @@
 # Codex Netwatch
 
-A local dashboard for Codex network usage, process attribution, and session activity.
+A local monitor for Codex network activity, with a compact desktop view, usage calendar and local reports.
 
 [**Download for Windows x64 →**](https://github.com/GloryPkqa/codex-netwatch/releases/latest/download/codex-netwatch-windows-x64.zip) · [Release notes & checksums](https://github.com/GloryPkqa/codex-netwatch/releases/latest) · [简体中文](README.zh-CN.md)
 
@@ -10,6 +10,10 @@ A local dashboard for Codex network usage, process attribution, and session acti
 
 ## Features
 
+- A mini desktop window that can stay on top or collapse, alongside the full dashboard and tray.
+- A monthly usage calendar with today/yesterday and week-over-week comparisons through the same local time. Unobserved days and unavailable comparisons remain explicit.
+- Self-contained HTML day/week reports with recorded totals, process rankings, busiest hours, gaps and coverage notes. Open locally and print or save as PDF through the browser.
+- Manual GitHub update checks and a Windows desktop installer that verifies package digests and a release file manifest, backs up the database/configuration and rolls back a failed installation.
 - Daily/monthly traffic budgets, remaining usage, early warnings and the busiest recorded hours in the last 24 hours. Optional Windows tray budget alerts continue with the window closed.
 - Live upload/download rates, local history, time filters (including the last 6 hours), and CSV export.
 - Keep 1–365 days of network history, with a retention period you can change in Settings.
@@ -39,7 +43,9 @@ The portable build includes Node.js. It requires **Windows 10/11 x64, .NET Frame
 
 Closing the window keeps collection running in the tray. Double-click the tray to reopen it. **Settings → Start with Windows** is optional and off by default. Use the tray's Exit command to quit the desktop host.
 
-For updates, stop the app and back up `data/` and `config.local.json`. Replace application files while preserving both. See [portable lifecycle and build details](docs/WINDOWS_PORTABLE.md).
+Use **Check for updates** in the desktop app to query GitHub manually and review an offered release. The Windows installer verifies the package and file manifest, backs up SQLite/configuration, replaces application files and rolls back a failed installation. Checking/downloading updates connects to GitHub; monitoring records are not uploaded by that check. Package verification is not Windows code signing.
+
+Manual updates remain available: stop the app, back up `data/` and `config.local.json`, and replace application files while preserving both. Version 0.5 retains database schema 4 from 0.4; versions before 0.4 require a pre-schema-4 backup. See [portable lifecycle and build details](docs/WINDOWS_PORTABLE.md).
 
 ## Run from source
 
@@ -66,6 +72,10 @@ Open [127.0.0.1:43128](http://127.0.0.1:43128). On Windows, `start.cmd` starts t
 Native capture counts new events from helper startup and retains connections that close between dashboard polls. It includes loopback process traffic and shows destination IPs without DNS lookups. ETW buffer loss is recorded as a gap. Mihomo snapshots can miss short connections and closing bytes and establish a baseline on first attach/reconnect. Source changes mark gaps; historical totals can include different measurement methods. Offline traffic is not backfilled, and none of these counters is a VPN bill or interface total. MB and GB use decimal units. See [native capture details](docs/NATIVE_CAPTURE.md).
 
 ## Configuration and troubleshooting
+
+The **calendar** uses the database's fixed budget time zone, including the actual local day boundaries across daylight-saving changes. Daily aggregates survive detailed-history cleanup. Today/yesterday and this-week/last-week comparisons use the same local clock cutoff; if a partial-day comparison needs pruned samples, it is unavailable instead of estimating from the entire day's total. A date without observations stays unknown, while a real zero-byte observation is shown as zero.
+
+Choose a **day or week report** to inspect recorded totals and the process/hour/gap evidence still retained for that period. Current periods stop at the report timestamp. Download the self-contained HTML file for local viewing; browser printing can save it as a PDF. Reports can contain process names and network-activity metadata: review them before sharing. A report does not certify complete collection or reconstruct missing detailed history. See [calendar and report details](docs/CALENDAR_REPORTS.md).
 
 In **Settings → Daily and monthly budgets**, enter decimal GB limits (0 disables a budget), an early-warning percentage and a scope: Codex only or all observed processes. The budget panel always shows the current calendar day/month, independently of the history filter. Each threshold warns once per limit, scope and period; a jump straight past 100% records the exceeded warning only. Changing a limit evaluates the recorded usage immediately. Enable budget desktop alerts to receive Windows tray balloons while the desktop host is running; OS notification settings can suppress delivery. Browser notification permissions are separate.
 

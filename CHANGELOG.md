@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.5.0 — 2026-10-25
+
+- Add a mini desktop monitor with always-on-top and collapsed views while keeping the full dashboard and tray collection available.
+- Add a monthly daily-usage calendar and same-local-time day/week comparisons. Preserve daily aggregates after detailed-history cleanup and mark unobserved or insufficient-detail comparisons explicitly.
+- Add local day/week summaries and self-contained HTML exports with totals, retained process/hour/gap evidence and coverage notes. Current periods stop at the report timestamp; browser printing can produce a PDF.
+- Add manual GitHub update checks and a Windows desktop installation flow with package-digest/release-manifest verification, SQLite/configuration backup and failure rollback. These checks do not provide Windows code signing.
+- Retain database schema 4; calendar and report queries are read-only and do not alter recorded usage or restore pruned evidence.
+
 ## 0.4.0 — 2026-10-25
 
 - Add daily and calendar-month traffic budgets, remaining/over-budget usage, early-warning thresholds and the busiest recorded hours in the last 24 hours. Choose Codex-only or all-observed-process scope; budgets are independent of the dashboard time filter.
