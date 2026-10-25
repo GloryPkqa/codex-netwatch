@@ -37,7 +37,21 @@ function Assert-Child([string]$Parent, [string]$Child) {
 }
 function Test-Alive([int]$ProcessId) { return [bool](Get-Process -Id $ProcessId -ErrorAction SilentlyContinue) }
 function Get-Health {
-  try { return Invoke-RestMethod -Uri ('http://127.0.0.1:' + $p.port + '/api/health') -TimeoutSec 1 } catch { return $null }
+  try {
+    $request = [Net.HttpWebRequest]::Create('http://127.0.0.1:' + $p.port + '/api/health')
+    $request.Proxy = $null; $request.Timeout = 2000; $request.ReadWriteTimeout = 2000
+    $request.AllowAutoRedirect = $false; $request.KeepAlive = $false
+    $response = $request.GetResponse()
+    try {
+      $reader = New-Object IO.StreamReader($response.GetResponseStream())
+      try {
+        $buffer = New-Object char[] 16385
+        $count = $reader.ReadBlock($buffer, 0, $buffer.Length)
+        if ($count -gt 16384) { return $null }
+        return ((New-Object string($buffer, 0, $count)) | ConvertFrom-Json)
+      } finally { $reader.Dispose() }
+    } finally { $response.Dispose() }
+  } catch { return $null }
 }
 function Start-Tray {
   $env:CODEX_FLOW_DATA_DIR = $dataRoot
@@ -141,10 +155,18 @@ try {
   if ($next.version -ne $p.version -or $next.name -ne 'codex-netwatch') { throw 'Package identity mismatch' }
   $hostProcess = Get-Process -Id $p.hostPid -ErrorAction Stop
   $collectorProcess = Get-Process -Id $p.collectorPid -ErrorAction Stop
-  $health = Get-Health
-  if ($hostProcess.Path -ne $exe -or $collectorProcess.Path -ne (Join-Path $installRoot 'runtime\node.exe') -or
-      !$health -or $health.app -ne 'codex-flow' -or $health.version -ne $p.currentVersion -or
-      $health.desktopInstance -ne $p.instance -or $health.demo) { throw 'Running application identity changed' }
+  $null = $hostProcess.Handle; $null = $collectorProcess.Handle
+  if ($hostProcess.Path -ne $exe) { throw 'Running tray executable identity changed' }
+  if ($collectorProcess.Path -ne (Join-Path $installRoot 'runtime\node.exe')) { throw 'Running collector executable identity changed' }
+  $identityDeadline = [DateTime]::UtcNow.AddSeconds(12)
+  do {
+    $health = Get-Health
+    if ($health -and $health.app -eq 'codex-flow' -and $health.version -eq $p.currentVersion -and
+        $health.desktopInstance -eq $p.instance -and !$health.demo) { break }
+    Start-Sleep -Milliseconds 250
+  } while ([DateTime]::UtcNow -lt $identityDeadline)
+  if (!$health -or $health.app -ne 'codex-flow' -or $health.version -ne $p.currentVersion -or
+      $health.desktopInstance -ne $p.instance -or $health.demo) { throw 'Running collector health identity changed or unavailable' }
   # Back up every overwritten application file before asking the current host to exit.
   New-Item -ItemType Directory -Path (Join-Path $backup 'app') -Force | Out-Null
   foreach ($relative in $seen) {
