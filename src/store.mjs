@@ -7,6 +7,7 @@ import { calendarSummary, reportSummary } from './reports.mjs';
 export class Store {
   constructor(dir) {
     fs.mkdirSync(dir, { recursive: true });
+    this.excludedSessions = new Set();
     this.db = new DatabaseSync(path.join(dir, 'monitor.sqlite'));
     const version = this.db.prepare('PRAGMA user_version').get().user_version;
     if (version > 4) {
@@ -165,8 +166,22 @@ export class Store {
         observed,
       );
   }
+  excludeSessions(ids) {
+    this.excludedSessions = new Set(ids);
+  }
   sessions() {
-    return this.db.prepare('SELECT * FROM sessions ORDER BY activity DESC LIMIT 200').all();
+    const sessions = [];
+    // Preserve stored history while hiding internal reviews before applying the
+    // visible-row limit. Iteration avoids a large SQL parameter list of IDs.
+    const rows = this.db.prepare(
+      "SELECT * FROM sessions WHERE model <> 'codex-auto-review' ORDER BY activity DESC",
+    );
+    for (const row of rows.iterate()) {
+      if (this.excludedSessions.has(row.id)) continue;
+      sessions.push(row);
+      if (sessions.length === 200) break;
+    }
+    return sessions;
   }
   totals(from, to) {
     return this.db

@@ -55,6 +55,35 @@ export function sessionTitles(text) {
   return titles;
 }
 
+function threadSource(value) {
+  try {
+    return typeof value === 'string' ? JSON.parse(value) : value;
+  } catch {
+    return null;
+  }
+}
+
+function isGuardian(row) {
+  return row.model === 'codex-auto-review' || threadSource(row.source)?.subagent?.other === 'guardian';
+}
+
+function threadTitle(row, titles, threads) {
+  const title = (thread) => thread.name || titles.get(thread.id) || thread.title || thread.id;
+  const source = threadSource(row.source);
+  const spawn = source?.subagent?.thread_spawn || source?.thread_spawn;
+  const parentId = row.parent_thread_id || spawn?.parent_thread_id;
+  if (!parentId) return title(row);
+  const parent = threads.get(parentId);
+  const parentTitle = parent ? title(parent) : titles.get(parentId) || parentId;
+  const agentPath = row.agent_path || spawn?.agent_path;
+  const agentName =
+    (typeof agentPath === 'string' && agentPath.split(/[\\/]/).filter(Boolean).at(-1)) ||
+    row.agent_nickname ||
+    spawn?.agent_nickname ||
+    row.id;
+  return `${parentTitle} · 子任务 ${agentName}`;
+}
+
 export class SessionReader {
   constructor(config, store) {
     this.config = config;
@@ -88,14 +117,22 @@ export class SessionReader {
       );
       for (const key of ['id', 'title', 'rollout_path', 'updated_at'])
         if (!fields.has(key)) throw new Error('Unsupported threads schema');
-      const sessions = db
+      const optionalFields = ['name', 'model', 'source', 'parent_thread_id', 'agent_path', 'agent_nickname']
+        .map((key) => fields.has(key) ? key : `'' AS ${key}`)
+        .join(',');
+      // Read metadata for all threads so internal reviews cannot consume the
+      // rollout-read limit, and parent titles remain available for older tasks.
+      const threads = db
         .prepare(
-          `SELECT id,title,rollout_path,updated_at,${fields.has('model') ? 'model' : "'' AS model"} FROM threads ORDER BY updated_at DESC LIMIT 200`,
+          `SELECT id,title,rollout_path,updated_at,${optionalFields} FROM threads ORDER BY updated_at DESC`,
         )
         .all();
+      const byId = new Map(threads.map((row) => [row.id, row]));
+      this.store.excludeSessions?.(threads.filter(isGuardian).map((row) => row.id));
+      const sessions = threads.filter((row) => !isGuardian(row)).slice(0, 200);
       this.active = [];
       for (const row of sessions) {
-        row.title = titles.get(row.id) || row.title;
+        const title = String(threadTitle(row, titles, byId)).slice(0, 200);
         const old = this.cache.get(row.id);
         let usage = old?.usage || null,
           activity = row.updated_at * 1000;
@@ -104,7 +141,12 @@ export class SessionReader {
           // Only open rollouts inside the configured Codex home. Never follow a DB
           // path to an unrelated file or a symlink escaping that directory.
           const real = fs.realpathSync(row.rollout_path);
-          const rel = path.relative(fs.realpathSync(home), real);
+          // Windows can return either C:\\... or \\\\?\\C:\\... for the same
+          // location. Compare matching namespace forms after resolving symlinks.
+          const rel = path.relative(
+            path.toNamespacedPath(fs.realpathSync(home)),
+            path.toNamespacedPath(real),
+          );
           if (rel.startsWith('..') || path.isAbsolute(rel) || !real.endsWith('.jsonl'))
             throw new Error('Unexpected rollout path');
           const stat = fs.statSync(real);
@@ -117,14 +159,14 @@ export class SessionReader {
         const observed = old?.usage && usage ? Math.max(0, usage.total - old.usage.total) : 0;
         const session = {
           id: row.id,
-          title: String(row.title || row.id).slice(0, 200),
+          title,
           model: row.model || '',
           activity,
           ...usage,
         };
-        if (!old || fingerprint !== old.fingerprint || row.title !== old.title)
+        if (!old || fingerprint !== old.fingerprint || title !== old.title)
           this.store.saveSession(session, observed);
-        this.cache.set(row.id, { usage, fingerprint, title: row.title });
+        this.cache.set(row.id, { usage, fingerprint, title });
         if (now - activity >= 0 && now - activity <= 60000) this.active.push(row.id);
       }
       this.status = 'ready';

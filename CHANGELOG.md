@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.5.1 — 2026-11-02
+
+- Hide internal Guardian review threads before applying the session-list limit, including previously cached reviews, while retaining stored history.
+- Read current desktop session names and label ordinary subagents with their parent session and task name. Keep each subagent's token usage separate.
+- Fix Windows namespace-prefixed rollout paths being rejected as outside the Codex home, which could leave token counts stale. Preserve the check against paths outside the configured home.
+- Add regression coverage for review-heavy histories, renamed sessions, legacy schemas, subagent labels, token baselines and Windows path handling. Retain database schema 4 and existing observed-token history.
+
 ## 0.5.0 — 2026-10-25
 
 - Add a mini desktop monitor with always-on-top and collapsed views while keeping the full dashboard and tray collection available.

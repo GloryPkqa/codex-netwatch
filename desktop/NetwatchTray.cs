@@ -16,7 +16,7 @@ using System.Windows.Forms;
 [assembly: AssemblyDescription("Portable local dashboard, collector and system tray host")]
 [assembly: AssemblyCompany("GloryPkqa")]
 [assembly: AssemblyProduct("Codex Netwatch")]
-[assembly: AssemblyVersion("0.5.0.0")]
+[assembly: AssemblyVersion("0.5.1.0")]
 
 internal sealed class TrayOptions
 {
